@@ -1,0 +1,44 @@
+{
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": {
+  },
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "function": "app"
+      },
+      {
+        "source": "/home",
+        "function": "app"
+      },
+      {
+        "source": "/singin",
+        "function": "app"
+      },
+      {
+        "source": "/singout",
+        "function": "app"
+      },
+      {
+        "source": "/users",
+        "function": "app"
+      }
+    ]
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}
