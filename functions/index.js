@@ -464,52 +464,23 @@ api.get('/employee/id/:id',(req, res) => {
     });
 });
 api.get('/employee',(req, res) => {
-    var strJson = '[';
-    var state = 'y';
+    var json = [];
     db.collection('employee').get()
         .then((snapshot) => {
             snapshot.docs.forEach((doc) => {
-                if(state=='y') {
-                    strJson+='{"id":'+JSON.stringify(doc.id);
-                    strJson+=',"name":'+JSON.stringify(doc.data().name);
-                    strJson+=',"surname":'+JSON.stringify(doc.data().surname);
-                    strJson+=',"sex":'+JSON.stringify(doc.data().sex);
-                    if(doc.data().birthday != undefined)
-                        strJson+=',"birthday":'+JSON.stringify(doc.data().birthday);
-                    else
-                        strJson+=',"birthday":"0000-00-00 00:00:00"';
-                    strJson+=',"position":'+JSON.stringify(doc.data().position);
-                    strJson+=',"address":'+JSON.stringify(doc.data().address);
-                    strJson+=',"phoneNumber":'+JSON.stringify(doc.data().phoneNumber);
-                    if(doc.data().firstDayOfWork != undefined)
-                        strJson+=',"firstDayOfWork":'+JSON.stringify(doc.data().firstDayOfWork);
-                    else
-                        strJson+=',"firstDayOfWork":"0000-00-00 00:00:00"'
-                    strJson+='}';
-                    state = 'n'               
-                }
-                else {
-                    strJson+=',{';
-                    strJson+='"id":'+JSON.stringify(doc.id);
-                    strJson+=',"name":'+JSON.stringify(doc.data().name);
-                    strJson+=',"surname":'+JSON.stringify(doc.data().surname);
-                    strJson+=',"sex":'+JSON.stringify(doc.data().sex);
-                    if(doc.data().birthday != undefined)
-                        strJson+=',"birthday":'+JSON.stringify(doc.data().birthday);
-                    else
-                        strJson+=',"birthday":"0000-00-00 00:00:00"';
-                    strJson+=',"position":'+JSON.stringify(doc.data().position);
-                    strJson+=',"address":'+JSON.stringify(doc.data().address);
-                    strJson+=',"phoneNumber":'+JSON.stringify(doc.data().phoneNumber);
-                    if(doc.data().firstDayOfWork != undefined)
-                        strJson+=',"firstDayOfWork":'+JSON.stringify(doc.data().firstDayOfWork);
-                    else
-                        strJson+=',"firstDayOfWork":"0000-00-00 00:00:00"'
-                    strJson+='}';
-                }
+                json.push({
+                    id : doc.id,
+                    name : doc.data().name,
+                    surname : doc.data().surname,
+                    sex : doc.data().sex,
+                    birthday : doc.data().birthday,
+                    position : doc.data().position,
+                    address : doc.data().address,
+                    phoneNumber : doc.data().phoneNumber,
+                    firstDayOfWork : doc.data().firstDayOfWork   
+                })
             });
-            strJson+=']';
-            res.status(200).send(strJson);
+            res.status(200).send(json);
         })
     .catch((err) => {
         res.status(401).json({error:err});
