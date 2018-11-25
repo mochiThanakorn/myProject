@@ -7,6 +7,14 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const tokenApi = "CC80274793D170ADF2FE745398A9C458D81357557F89392203C0052CE4F99748";
 
+function isJSON(str) {
+    try {
+        return (JSON.parse(str) && !!str);
+    } catch (e) {
+        return false;
+    }
+}
+
 const app = express();
 app.engine('hbs', engines.handlebars);
 app.set('views', './views');
@@ -119,7 +127,7 @@ app.delete('/home', verifyToken,(req, res) => {
 //web api
 app.get('/user/id/:id',(req, res) => {
     db.collection('users').doc(req.params.id).get()
-        .then((doc) => {      
+        .then((doc) => {       
             var strJson = '{'; 
             strJson += '"Id":"'+doc.id+'"';
             strJson+=',"Name":"'+doc.data().Name+'"';
@@ -247,6 +255,12 @@ const api = express();
 api.use(cors());
 
 api.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
+
+api.use((req, res, next) => {
     const auth = req.headers['auth']
     if(typeof auth!=='undefined' && auth==tokenApi) {
         next()
@@ -255,12 +269,21 @@ api.use((req, res, next) => {
     }
 })
 api.post('/signin',(req, res) => {
-    console.log("sign in");
-    var user = JSON.parse(req.body);
-    if (user.username=="" && user.password=="") {
+    console.log("sign in");  
+    if(req.body.username!="" && req.body.password!="") {
+        var user = {
+            username : req.body.username,
+            password : req.body.password
+        }
+    } 
+    else {
+        var user = JSON.parse(req.body)
+    } 
+    console.log(user.username+" "+user.password)
+    if (user.username && user.username=="" && user.password && user.password=="") {
         res.send("Username and Password is null.");
     } else if (user.username=="") {
-        res.send("Username  is null.");
+        res.send("Username is null.");
     } else if (user.password=="") {
         res.send("Password is null.");
     }
@@ -285,20 +308,7 @@ api.post('/signin',(req, res) => {
         res.json({errorMsg : error});
     });
 })
-api.post('/signout',(req, res) => {
-    var user = JSON.parse(req.body); 
-    db.collection("users").where("username", "==",user.username)
-    .get()
-    .then(docs => {
-        docs.forEach(function(doc) {
-            str = '{'+doc.id+" => "+doc.data()+'}';
-            res.send(str)
-        });
-    })
-    .catch((error) => {
-        console.log("Error getting documents: ", error);
-    });
-})
+
 api.get('/user/id/:id',(req, res) => {
     db.collection('users').doc(req.params.id).get()
         .then((doc) => {      
@@ -440,8 +450,10 @@ api.delete('/user',(req, res) => {
 });
 
 //Employee
-api.get('/employee/id/:id',(req, res) => {
-    db.collection('employee').doc(req.params.id).get()
+api.get('/employee',(req, res) => {
+    var employeeArr = [];
+    if(typeof req.query.id !== "undefined") {
+        db.collection('employee').doc(req.query.id).get()
         .then((doc) => {
             if (doc.exists) {
                 res.json({
@@ -462,13 +474,12 @@ api.get('/employee/id/:id',(req, res) => {
     .catch((err) => {
         res.status(401).send('Error getting documents', err);
     });
-});
-api.get('/employee',(req, res) => {
-    var json = [];
-    db.collection('employee').get()
+    }
+    else if(typeof req.query.name !== "undefined") {
+        db.collection('employee').where('name', '==', req.query.name).get()
         .then((snapshot) => {
             snapshot.docs.forEach((doc) => {
-                json.push({
+                employeeArr.push({
                     id : doc.id,
                     name : doc.data().name,
                     surname : doc.data().surname,
@@ -480,43 +491,82 @@ api.get('/employee',(req, res) => {
                     firstDayOfWork : doc.data().firstDayOfWork   
                 })
             });
-            res.status(200).send(json);
+            res.status(200).send(employeeArr);
         })
-    .catch((err) => {
-        res.status(401).json({error:err});
-    });
+        .catch((err) => {
+            res.status(401).json({error:err});
+        });
+    }
+    else {
+        db.collection('employee').get()
+        .then((snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                employeeArr.push({
+                    id : doc.id,
+                    name : doc.data().name,
+                    surname : doc.data().surname,
+                    sex : doc.data().sex,
+                    birthday : doc.data().birthday,
+                    position : doc.data().position,
+                    address : doc.data().address,
+                    phoneNumber : doc.data().phoneNumber,
+                    firstDayOfWork : doc.data().firstDayOfWork   
+                })
+            });
+            res.status(200).send(employeeArr);
+        })
+        .catch((err) => {
+            res.status(401).json({error:err});
+        });
+    }
 });
-api.put('/employee/:id',(req, res) => {
+
+api.put('/employee',(req, res) => {
     //ถ้าไอดีไม่ตรงยังมีปัญหาอยู่
     //เพิ่มตรวจjson input
-    var user = JSON.parse(req.body);
-    var sfDocRef = db.collection("employee").doc(req.params.id);
-    return db.runTransaction(function(transaction) {
-        return transaction.get(sfDocRef).then(function(sfDoc) {
-            if (!sfDoc.exists) {
-                res.status(404).json({error : "Document does not exist!"})
-                //throw "Document does not exist!";
-            }       
-            transaction.update(sfDocRef, { 
-                name : user.name, 
-                surname : user.surname, 
-                sex : user.sex,
-                birthday : user.birthday,
-                position : user.position,
-                address : user.address,
-                phoneNumber : user.phoneNumber,
-                firstDayOfWork : user.firstDayOfWork
+    if(typeof req.query.id !== "undefined") {
+        if(req.body.name!="" && req.body.surname!="" && req.body.sex!="" && req.body.birthday!="" && req.body.position!="" && req.body.address!="" && req.body.phoneNumber!="" && req.body.firstDayOfWork!="") {
+            var user = req.body
+        } 
+        else {
+            var user = JSON.parse(req.body)
+        }
+        var sfDocRef = db.collection("employee").doc(req.query.id);
+        return db.runTransaction(function(transaction) {
+            return transaction.get(sfDocRef).then(function(sfDoc) {
+                if (!sfDoc.exists) {
+                    res.status(404).json({error : "Document does not exist!"})
+                    //throw "Document does not exist!";
+                }       
+                transaction.update(sfDocRef, { 
+                    name : user.name, 
+                    surname : user.surname, 
+                    sex : user.sex,
+                    birthday : user.birthday,
+                    position : user.position,
+                    address : user.address,
+                    phoneNumber : user.phoneNumber,
+                    firstDayOfWork : user.firstDayOfWork
+                });
             });
+        }).then(function() {
+            res.status(200).send("Transaction successfully committed!")
+        }).catch(function(errorMsg) {
+            res.status(401).json({error : errorMsg})
         });
-    }).then(function() {
-        res.status(200).send("Transaction successfully committed!")
-    }).catch(function(errorMsg) {
-        res.status(401).json({error : errorMsg})
-    });
+    }
+    else {
+        res.send(401).send("not found id")
+    }
 });
 api.post('/employee',(req, res) => {
     // add feature console log check data when data is undefined
-    var user = JSON.parse(req.body);
+    if(req.body.name!="" && req.body.surname!="" && req.body.sex!="" && req.body.birthday!="" && req.body.position!="" && req.body.address!="" && req.body.phoneNumber!="" && req.body.firstDayOfWork!="") {
+        var user = req.body
+    } 
+    else {
+        var user = JSON.parse(req.body)
+    } 
     var docRef = db.collection('employee').doc();
     var setAda = docRef.set({       
         name: user.name,
@@ -530,8 +580,8 @@ api.post('/employee',(req, res) => {
     })
     res.status(200).send('Add complete');
 });
-api.delete('/employee/:id',(req, res) => {
-    db.collection("employee").doc(req.params.id).delete().then(function() {
+api.delete('/employee',(req, res) => {
+    db.collection("employee").doc(req.query.id).delete().then(function() {
         res.status(200).send("Document successfully deleted!");
     }).catch(function(error) {
         res.status(401).send("Error removing document: ", error);
@@ -559,7 +609,12 @@ api.put('/fabricroll',(req, res) => {
 });
 api.post('/fabricroll',(req, res) => {
     // add feature console log check data when data is undefined
-    var user = JSON.parse(req.body);
+    if(req.body.name!="" && req.body.surname!="" && req.body.sex!="" && req.body.birthday!="" && req.body.position!="" && req.body.address!="" && req.body.phoneNumber!="" && req.body.firstDayOfWork!="") {
+        var user = req.body
+    } 
+    else {
+        var user = JSON.parse(req.body)
+    } 
     var docRef = db.collection('fabricrolls').doc();
     var setAda = docRef.set({       
         name: user.name,
