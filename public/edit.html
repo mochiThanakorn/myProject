@@ -1,0 +1,64 @@
+<html>
+    <head>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    </head>
+    <body>
+                <a>Name : </a><input id="in-name" type="text" placeholder="name"><br>
+                <a>Surname : </a><input id="in-surname" type="text" placeholder="name"><br>
+                <a>Sex : </a><input id="in-sex" type="text" placeholder="name"><br>
+                <a>Position : </a><input id="in-position" type="text" placeholder="name"><br>
+                <a>Address : </a><input id="in-address" type="text" placeholder="name"><br>
+                <a>Phone number : </a><input id="in-phoneNumber" type="text" placeholder="name"><br>
+                <a>Birthday : </a><input id="in-birthday" type="text" placeholder="name"><br>
+                <a>First day of work : </a><input id="in-firstDayOfWork" type="text" placeholder="name"><br>
+                <button id="btn-update-emp">Update</button>
+                <button id="btn-back">Back</button>
+    </body>
+    <script>
+        $(()=>{
+            var data = JSON.parse(sessionStorage.getItem('editEmp'));
+            $("#in-name").val(data.name)
+            $("#in-surname").val(data.surname)
+            $("#in-sex").val(data.sex) 
+            $("#in-position").val(data.position) 
+            $("#in-address").val(data.address) 
+            $("#in-phoneNumber").val(data.phoneNumber)
+            $("#in-birthday").val(data.birthday) 
+            $("#in-firstDayOfWork").val(data.firstDayOfWork) 
+        })
+        $("#btn-back").click(()=>{
+            window.location.href = "testAPI.html"
+        })
+        $("#btn-update-emp").click(()=>{
+            var data = JSON.parse(sessionStorage.getItem('editEmp'));
+            $.ajax({
+                url: 'https://us-central1-mochi-cpe-api.cloudfunctions.net/api/employee?id='+data.id,
+                type: 'PUT',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'auth': 'CC80274793D170ADF2FE745398A9C458D81357557F89392203C0052CE4F99748'
+                },
+                data: {
+                    'name': $("#in-name").val(),
+                    'surname': $("#in-surname").val(),
+                    'sex' : $("#in-sex").val(),
+                    'position' : $("#in-position").val(),                        
+                    'address' : $("#in-address").val(),
+                    'phoneNumber' : $("#in-phoneNumber").val(),
+                    'birthday' : $("#in-birthday").val(),
+                    'firstDayOfWork' : $("#in-firstDayOfWork").val()
+                },
+                contentType: 'application/json; charset=utf-8',
+                success: (result) => {  
+                    window.location.href = "index.html"
+                    console.log(result)        
+                },
+                error: error => {
+                    console.log(error)
+                    console.log("Error")
+                }
+            })   
+        })
+        
+    </script>
+</html>
