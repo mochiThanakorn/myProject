@@ -1,15 +1,15 @@
 
 <html>
     <head>
-        <style>      
+        <style>
             tr:nth-child(even) {
                 background-color: #f2f2f2
-            }                
+            }
             th {
                 background-color: #ff0066;
                 color: white;
             }
-        </style>       
+        </style>
         <script src="https://www.gstatic.com/firebasejs/5.5.9/firebase.js"></script>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
@@ -51,9 +51,7 @@
             db.collection("employee")
                 .onSnapshot(() => {
                     console.log("Refresh")
-                    setTimeout(()=>{
                         refreshEmp()
-                    },2000)
             });
             //sessionStorage.setItem('key', 'value');
             $("#btn-update-emp").click(()=>{
@@ -77,15 +75,15 @@
                     },
                     dataType: "json",
                     contentType: 'application/json; charset=utf-8',
-                    success: (result) => {  
-                        console.log(result)        
+                    success: (result) => {
+                        console.log(result)
                     },
                     error: error => {
                         console.log(error)
                     }
                 });
-                
-            })          
+
+            })
             const editEmp = (emp) => {
                 console.log("edit ")
                 sessionStorage.setItem('editEmp', JSON.stringify(emp));
@@ -121,30 +119,24 @@
                     },
                     contentType: 'application/json; charset=utf-8',
                     success: result => {
-                        localStorage.setItem("employees", JSON.stringify(result));
+                        var json_emp = result
+                        let str = "";
+                        for(i=0;i<json_emp.length;i++) {
+                            str+="<tr>"
+                            str+="<td>"+(i+1)+"</td>"
+                            str+="<td>"+json_emp[i].name+"</td>"
+                            str+="<td>"+json_emp[i].surname+"</td>"
+                            str+="<td>"+json_emp[i].position+"</td>"
+                            str+="<td>"+json_emp[i].phoneNumber+"</td>"
+                            str+="<td><button class='btn btn-warning' onclick='editEmp("+JSON.stringify(json_emp[i])+")'>Edit</button>&#32<button class='btn btn-danger' onclick='deleteEmp(\""+json_emp[i].id+"\"); refreshEmp();'>Delete</button></td>"
+                            str+="</tr>"
+                        }
+                        $("#tbody-emp").html(str)
                     },
                     error: error => {
                         console.log(error)
                     }
                 });
-                var json_emp = JSON.parse(localStorage.getItem("employees"))
-                console.log(json_emp)
-                let str = "";
-                for(i=0;i<json_emp.length;i++) {
-                    str+="<tr>"
-                    str+="<td>"+(i+1)+"</td>"
-                    str+="<td>"+json_emp[i].name+"</td>"
-                    str+="<td>"+json_emp[i].surname+"</td>"
-                    str+="<td>"+json_emp[i].position+"</td>"
-                    str+="<td>"+json_emp[i].phoneNumber+"</td>"
-
-                    str+="<td><button class='btn btn-warning' onclick='editEmp("+JSON.stringify(json_emp[i])+")'>Edit</button>&#32<button class='btn btn-danger' onclick='deleteEmp(\""+json_emp[i].id+"\"); refreshEmp();'>Delete</button></td>"
-                    str+="</tr>"
-                }     
-                $("#tbody-emp").html(str)
             }
-            /*setInterval(function(){
-                refreshEmp()
-            },1000)*/
-        </script> 
+        </script>
 </html>
