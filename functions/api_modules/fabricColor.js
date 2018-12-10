@@ -1,25 +1,18 @@
 const express = require('express');
 const app = express();
-const functions = require('firebase-functions');
-const firebase = require('firebase-admin');
-const firebaseApp2 = firebase.initializeApp(
-    functions.config().firebase
-);
-var db = firebaseApp2.firestore();
+const db = require('./db_connect');
 
-//fabric roll
+//fabric color
 app.get('/',(req, res) => {
     var employeeArr = [];
     if(typeof req.query.id !== "undefined") {
-        db.collection('fabricRolls').where('id', '==', req.query.id).get()
+        db.collection('fabricColor').where('id', '==', req.query.id).get()
         .then((snapshot) => {
             snapshot.docs.forEach((doc) => {
                 employeeArr.push({
                     id : doc.id,
-                    idFabricType: doc.data().idFabricType,
-                    idFabricColor: doc.data().idFabricColor,
-                    size: doc.data().size,
-                    weight: doc.data().weight   
+                    name: doc.data().name,
+                    code: doc.data().code
                 })
             });
             res.status(200).send(employeeArr);
@@ -29,15 +22,13 @@ app.get('/',(req, res) => {
         });
     }
     else {
-        db.collection('fabricRolls').get()
+        db.collection('fabricColor').orderBy("name").get()
         .then((snapshot) => {
             snapshot.docs.forEach((doc) => {
                 employeeArr.push({
                     id : doc.id,
-                    idFabricType: doc.data().idFabricType,
-                    idFabricColor: doc.data().idFabricColor,
-                    size: doc.data().size,
-                    weight: doc.data().weight  
+                    name: doc.data().name,
+                    code: doc.data().code
                 })
             });
             res.status(200).send(employeeArr);
@@ -49,8 +40,6 @@ app.get('/',(req, res) => {
 });
 
 app.put('/',(req, res) => {
-    //ถ้าไอดีไม่ตรงยังมีปัญหาอยู่
-    //เพิ่มตรวจjson input
     if(typeof req.query.id !== "undefined") {
         if(typeof req.body == 'object') {
             var data = req.body
@@ -58,7 +47,7 @@ app.put('/',(req, res) => {
         else {
             var data = JSON.parse(req.body)
         }
-        var sfDocRef = db.collection("fabricRolls").doc(req.query.id);
+        var sfDocRef = db.collection("fabricColor").doc(req.query.id);
         return db.runTransaction(function(transaction) {
             return transaction.get(sfDocRef).then(function(sfDoc) {
                 if (!sfDoc.exists) {
@@ -66,11 +55,8 @@ app.put('/',(req, res) => {
                     //throw "Document does not exist!";
                 }       
                 transaction.update(sfDocRef, { 
-                    id : data.id,
-                    idFabricType: data.data().idFabricType,
-                    idFabricColor: data.data().idFabricColor,
-                    size: data.data().size,
-                    weight: data.data().weight
+                    name: data.name,
+                    code: data.code
                 });
             });
         }).then(function() {
@@ -92,16 +78,14 @@ app.post('/',(req, res) => {
         var data = JSON.parse(req.body)
     }
     console.log(data)
-    db.collection('fabricRolls').doc().set({       
-        idFabricType: data.data().idFabricType,
-        idFabricColor: data.data().idFabricColor,
-        size: data.data().size,
-        weight: data.data().weight     
+    db.collection('fabricColor').doc().set({       
+        name: data.name,
+        code: data.code     
     })
     res.status(200).send('Add fabric roll successful.');
 });
 app.delete('/',(req, res) => {
-    db.collection("fabricRolls").doc(req.query.id).delete().then(function() {
+    db.collection("fabricColor").doc(req.query.id).delete().then(function() {
         res.status(200).send("Document successfully deleted!");
     }).catch(function(error) {
         res.status(401).send("Error removing document: ", error);
