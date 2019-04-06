@@ -1,0 +1,137 @@
+
+<html>
+    <head>
+        <style>
+            tr:nth-child(even) {
+                background-color: #f2f2f2
+            }
+            th {
+                background-color: #ff0066;
+                color: white;
+            }
+        </style>
+        <script src="https://www.gstatic.com/firebasejs/5.5.9/firebase.js"></script>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    </head>
+    <body>
+      <div class="">
+        <button class="btn btn-info" onclick="window.location.href='fabricRollTable.html'">Fabric Roll</button>
+        <button class="btn btn-info" onclick="window.location.href='fabricColorTable.html'">Fabric Color</button>
+      </div>
+      <div class="">
+        <button class="btn btn-primary" onclick="window.location.href='fabricTypeAdd.html'">Add</button>
+      </div>
+      <div class="">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th >Action</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-emp"></tbody>
+        </table>
+      </div>
+    </body>
+        <script>
+            // Initialize Firebase
+            var config = {
+                apiKey: "AIzaSyDtXLdmdA6knN2fQ7rMGCvYnmF77mVvmEw",
+                authDomain: "mochi-cpe-api.firebaseapp.com",
+                databaseURL: "https://mochi-cpe-api.firebaseio.com",
+                projectId: "mochi-cpe-api",
+                storageBucket: "mochi-cpe-api.appspot.com",
+                messagingSenderId: "147376240422"
+            };
+            firebase.initializeApp(config);
+            var db = firebase.firestore();
+            db.settings({
+                timestampsInSnapshots: true
+            });
+            $(()=>{
+                refreshEmp()
+            })
+            db.collection("employee")
+                .onSnapshot(() => {
+                    console.log("Refresh")
+                        refreshEmp()
+            });
+            //sessionStorage.setItem('key', 'value');
+            $("#btn-update-emp").click(()=>{
+                $.ajax({
+                    url: 'https://us-central1-mochi-cpe-api.cloudfunctions.net/api/fabrictype',
+                    type: 'PUT',
+                    dataType: 'json',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'auth': 'CC80274793D170ADF2FE745398A9C458D81357557F89392203C0052CE4F99748'
+                    },
+                    data: {
+                        'name': $("#in-name").val(),
+                    },
+                    dataType: "json",
+                    contentType: 'application/json; charset=utf-8',
+                    success: (result) => {
+                        console.log(result)
+                    },
+                    error: error => {
+                        console.log(error)
+                    }
+                });
+
+            })
+            const editEmp = (emp) => {
+                console.log("edit ")
+                sessionStorage.setItem('editEmp', JSON.stringify(emp));
+                window.location.href="fabricTypeEdit.html"
+            }
+            const deleteEmp = (id) => {
+                console.log("delete "+id)
+                $.ajax({
+                    url: 'https://us-central1-mochi-cpe-api.cloudfunctions.net/api/fabrictype?id='+id,
+                    type: 'DELETE',
+                    dataType: 'json',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'auth': 'CC80274793D170ADF2FE745398A9C458D81357557F89392203C0052CE4F99748'
+                    },
+                    contentType: 'application/json; charset=utf-8',
+                    success: (result) => {
+                        console.log(result)
+                    },
+                    error: error => {
+                        console.log(error)
+                    }
+                });
+            }
+            const refreshEmp = () => {
+                $.ajax({
+                    url: 'https://us-central1-mochi-cpe-api.cloudfunctions.net/api/fabrictype',
+                    type: 'GET',
+                    dataType: 'json',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'auth': 'CC80274793D170ADF2FE745398A9C458D81357557F89392203C0052CE4F99748'
+                    },
+                    contentType: 'application/json; charset=utf-8',
+                    success: result => {
+                        var json_emp = result
+                        let str = "";
+                        for(i=0;i<json_emp.length;i++) {
+                            str+="<tr>"
+                            str+="<td>"+(i+1)+"</td>"
+                            str+="<td>"+json_emp[i].name+"</td>"
+                            str+="<td><button class='btn btn-warning' onclick='editEmp("+JSON.stringify(json_emp[i])+")'>Edit</button>&#32<button class='btn btn-danger' onclick='deleteEmp(\""+json_emp[i].id+"\"); refreshEmp();'>Delete</button></td>"
+                            str+="</tr>"
+                        }
+                        $("#tbody-emp").html(str)
+                    },
+                    error: error => {
+                        console.log(error)
+                    }
+                });
+            }
+        </script>
+</html>

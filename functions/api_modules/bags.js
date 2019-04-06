@@ -44,6 +44,72 @@ app.use((req, res, next) => {
     }
 })
 
+//Functions
+//Add Bags
+const getRunNumberOfBag = () => {
+  return new Promise((resolve, reject) => {
+    var docRef = db.collection("bagCount").doc("count");
+    docRef.get().then((doc) => {
+      if (doc.exists) {
+        runNumber = doc.data().number
+        console.log(runNumber)
+        resolve(true)
+      } else {
+        console.log("No such document!")
+        resolve(false)
+      }
+    })
+  })
+}
+const addBag = (data) => {
+  return new Promise((resolve, reject) => {
+    let doc = db.collection('bags').doc()
+    doc.set({
+      idBag : 'BG'+runNumber,
+      fabrics: data.fabrics
+    })
+    .then(() => {
+      console.log("Document successfully written!")
+      resolve(true)
+    })
+    .catch((error) => {
+      console.error("Error writing document: ", error)
+      reject(error)
+    })
+  })
+}
+const updateRunNumberOfBag = () => {
+  return new Promise((resolve, reject) => {
+    var batch = db.batch()
+    var nycRef = db.collection("bagCount").doc("count")
+    batch.set(nycRef, {number: runNumber+1})
+    batch.commit().then(() => {
+      resolve(true)
+    })
+  })
+}
+const addBags = async bags => {
+  for (let i = 0; i < bags.length; i++) {
+    await getRunNumberOfBag()
+    await addBag(bags[i])
+    await updateRunNumberOfBag()
+  }
+  return true
+}
+
+app.get('/bagid', (req, res) => {
+  db.collection("bagCount").doc("count").get()
+  .then((doc) => {
+    if (doc.exists) {
+      //convert int to string
+      let number = '' + doc.data().number
+      res.status(200).send(number)
+    } else {
+      res.status(400).send('There are document')
+    }
+  })
+})
+
 //printed
 app.get('/printed',(req, res) => {
     var dataArr = [];
@@ -381,137 +447,29 @@ app.post('/multiple', (req, res) => {
         })
     })
 })
+
 app.post('/',(req, res) => {
-    if(typeof req.body == 'object') {
-        var data = req.body
-    } else if(isJson(req.body)) {
-        var data = JSON.parse(req.body)
-    } else {
-        res.status(400).json({msg:"not json format"})
-    }
-    console.log(data)
-    var error_msg = "Error no field ["
-    var error_chk = false
-    if(!data.supplier) {
-        error_msg += "supplier,"
-        error_chk = true
-    }
-    if(!data.fabricType) {
-        error_msg += "fabricType,"
-        error_chk = true
-    }
-    if(!data.fabricColor) {
-        error_msg += "fabricColor,"
-        error_chk = true
-    }
-    if(!data.fabricColorCode) {
-        error_msg += "fabricColorCode,"
-        error_chk = true
-    }
-    if(!data.size) {
-        error_msg += "size,"
-        error_chk = true
-    }
-    if(!data.weight) {
-        error_msg += "weight,"
-        error_chk = true
-    }
-    if(!data.dateAdd) {
-        error_msg += "dateAdd,"
-        error_chk = true
-    }
-    if(!data.number) {
-        error_msg += "number,"
-        error_chk = true
-    }
-    if(error_chk) {
-        error_msg += "]"
-        res.status(400).json({msg:error_msg})
-    }
-    //get number
-    var runNumber
-    const getRunNumber = () => {
-        return new Promise((resolve, reject) => {
-            var docRef = db.collection("fabricRollCount").doc("count");
-            docRef.get().then(function(doc) {
-                if (doc.exists) {
-                    runNumber = doc.data().number
-                    console.log(runNumber)
-                    resolve(true)
-                } else {
-                    console.log("No such document!")
-                    resolve(false)
-                }
-            })
-        })
-    }
-            const addFabricRoll = (data) => {
-              return new Promise((resolve, reject) => {
-                let doc = db.collection('fabricRoll').doc()
-                doc.set({
-                    idFabric : 'FR'+runNumber,
-                    dateAdd : data.dateAdd,
-                    dateUse : null,
-                    supplier: data.supplier,
-                    fabricType: data.fabricType,
-                    fabricColor: data.fabricColor,
-                    fabricColorCode: data.fabricColorCode,
-                    status : 'wait',
-                    printed : false,
-                    size: data.size,
-                    weight: data.weight
-                })
-                .then(() => {
-                    console.log("Document successfully written!");
-                    console.log("doc.id = " + doc.id)
-                    console.log("doc.data().idFabric = " + 'FR'+runNumber)
-                    let data = {
-                        id: doc.id,
-                        idFabric: 'FR'+runNumber
-                    }
-                    resolve(data)
-                })
-                .catch(function(error) {
-                    console.error("Error writing document: ", error);
-                    reject(error)
-                });
-              })
-            }
-            const updateRunNumber = () => {
-              return new Promise((resolve, reject) => {
-                var batch = db.batch()
-                var nycRef = db.collection("fabricRollCount").doc("count")
-                batch.set(nycRef, {number: runNumber+1})
-                batch.commit().then(() => {
-                    console.log('Add fabric roll successful.')
-                    resolve(true)
-                })
-              })
-            }
-            async function addFabricRolls() {
-                let fabricRollsReturn = []
-                let id
-                let doc
-                for (var i = 0; i < data.number; i++) {
-                    await getRunNumber()
-                    doc = await addFabricRoll(data)
-                    fabricRollsReturn.push({
-                        id : doc.id,
-                        idFabric : doc.idFabric,
-                        ...data
-                    })
-                    await updateRunNumber()
-                }
-                return fabricRollsReturn
-            }
-            addFabricRolls().then((fabricRollsReturn) => {
-                console.log('fabricRollsReturn = ')
-                console.log(fabricRollsReturn)
-                res.status(200).json({
-                    msg : "success",
-                    data : fabricRollsReturn
-                })
-            })
+  if(typeof req.body == 'object') {
+    var data = req.body
+  } else if(isJson(req.body)) {
+    var data = JSON.parse(req.body)
+  } else {
+    res.status(400).json({msg:"not json format"})
+  }
+
+  var runNumber
+  var bags = data.bags
+
+  addBags(bags).then(() => {
+    res.status(200).json({
+      msg : "success"
+    })
+  })
+  .catch((err) => {
+    res.status(400).json({
+      msg: err
+    })
+  })
 })
 
 
@@ -575,248 +533,42 @@ app.delete('/',(req, res) => {
     })
 })
 
-//scan Qrcode state to scan
-app.put('/scan', (req, res) => {
-    if(typeof req.query.id !== "undefined") {
-        if(typeof req.body == 'object') {
-            var data = req.body
-        } else if(isJson(req.body)) {
-            var data = JSON.parse(req.body)
-        } else {
-            res.status(400).json({msg:"not json format"})
-        }
-            var sfDocRef = db.collection("fabricRoll").doc(req.query.id);
-            return db.runTransaction((transaction) => {
-                return transaction.get(sfDocRef).then((sfDoc) => {
-                    if (!sfDoc.exists) {
-                        res.send(401).send({err: "Document does not exist!"})
-                    }
-
-                    if (sfDoc.data().status == 'scan') {
-                      res.status(400).json({
-                        status: 1,
-                        msg: 'This fabric already scan.'
-                      })
-                    } else if (sfDoc.data().status == 'use') {
-                      res.status(400).json({
-                        status: 2,
-                        msg: 'This fabric already use.'
-                      })
-                    } else {
-                      transaction.update(sfDocRef, {
-                          status : 'scan'
-                      })
-                    }
-                })
-            }).then(() => {
-                res.status(200).json({msg:"Update status fabric roll to scan successful."})
-            }).catch((err) => {
-                res.send(401).send(err)
-            })
-            /*updateFabricRoll(data).then(() => {
-            res.status(200).json({msg:"Update fabric rolls successful."})
-        })*/
-    }
-    else {
-        res.send(401).send("not found id.")
-    }
-})
-
-
-
-/*
-app.get('/',(req, res) => {
-    var data = [];
-    if(typeof req.query.id !== "undefined") {
-        db.collection('fabricRoll').where('id', '==', req.query.id).get()
-        .then((snapshot) => {
-            snapshot.docs.forEach((doc) => {
-                data.push({
-                    id : doc.id,
-                    date : doc.data().date,
-                    supplier: doc.data().supplier,
-                    fabricType: doc.data().fabricType,
-                    fabricColor: doc.data().fabricColor,
-                    fabricColorCode: data().fabricColorCode,
-                    status : doc.data().status,
-                    size: doc.data().size,
-                    weight: doc.data().weight
-                })
-            });
-            res.status(200).send(data);
-        })
-        .catch((err) => {
-            res.status(401).json({error:err});
-        });
-    }
-    else {
-        db.collection('fabricRoll').get()
-        .then((snapshot) => {
-            snapshot.docs.forEach((doc) => {
-                data.push({
-                    id : doc.id,
-                    date : doc.data().date,
-                    supplier: doc.data().supplier,
-                    fabricType: doc.data().fabricType,
-                    fabricColor: doc.data().fabricColor,
-                    fabricColorCode: doc.data().fabricColorCode,
-                    status : doc.data().status,
-                    size: doc.data().size,
-                    weight: doc.data().weight
-                })
-            });
-            res.status(200).send(data);
-        })
-        .catch((err) => {
-            console.log(err)
-            res.status(401).json({msg : err});
-        });
-    }
-});
-
-app.put('/',(req, res) => {
-    if(typeof req.query.id !== "undefined") {
-        if(typeof req.body == 'object') {
-            var data = req.body
-        } else if(isJson(req.body)) {
-            var data = JSON.parse(req.body)
-        } else {
-            res.status(400).json({msg:"not json format"})
-        }
-        var error_msg = "Error no field ["
-        var error_chk = false
-        if(!data.supplier) {
-            error_msg += "supplier,"
-            error_chk = true
-        }
-        if(!data.fabricType) {
-            error_msg += "fabricType,"
-            error_chk = true
-        }
-        if(!data.fabricColor) {
-            error_msg += "fabricColor,"
-            error_chk = true
-        }
-        if(!data.fabricColorCode) {
-            error_msg += "fabricColorCode,"
-            error_chk = true
-        }
-        if(!data.size) {
-            error_msg += "size,"
-            error_chk = true
-        }
-        if(!data.weight) {
-            error_msg += "weight,"
-            error_chk = true
-        }
-        if(!data.date) {
-            error_msg += "date,"
-            error_chk = true
-        }
-        if(!data.status) {
-            error_msg += "status,"
-            error_chk = true
-        }
-        if(error_chk) {
-            error_msg += "]"
-            res.status(400).json({msg:error_msg})
-        }
-        var sfDocRef = db.collection("fabricRoll").doc(req.query.id);
-        return db.runTransaction(function(transaction) {
-            return transaction.get(sfDocRef).then(function(sfDoc) {
-                if (!sfDoc.exists) {
-                    res.status(404).json({error : "Document does not exist!"})
-                    //throw "Document does not exist!";
-                }
-                transaction.update(sfDocRef, {
-                    date : data.date,
-                    supplier: data.supplier,
-                    fabricType: data.fabricType,
-                    fabricColor: data.fabricColor,
-                    fabricColorCode: data.fabricColorCode,
-                    status : data.status,
-                    size: data.size,
-                    weight: data.weight
-                });
-            });
-        }).then(function() {
-            res.status(200).send("Transaction successfully committed!")
-        }).catch(function(errorMsg) {
-            res.status(401).json({error : errorMsg})
-        });
-    }
-    else {
-        res.send(401).send("not found id")
-    }
-});
-app.post('/',(req, res) => {
-    if(typeof req.body == 'object') {
-        var data = req.body
-    } else if(isJson(req.body)) {
-        var data = JSON.parse(req.body)
-    } else {
-        res.status(400).json({msg:"not json format"})
-    }
-    var error_msg = "Error no field ["
-    var error_chk = false
-    if(!data.supplier) {
-        error_msg += "supplier,"
-        error_chk = true
-    }
-    if(!data.fabricType) {
-        error_msg += "fabricType,"
-        error_chk = true
-    }
-    if(!data.fabricColor) {
-        error_msg += "fabricColor,"
-        error_chk = true
-    }
-    if(!data.fabricColorCode) {
-        error_msg += "fabricColorCode,"
-        error_chk = true
-    }
-    if(!data.size) {
-        error_msg += "size,"
-        error_chk = true
-    }
-    if(!data.weight) {
-        error_msg += "weight,"
-        error_chk = true
-    }
-    if(!data.date) {
-        error_msg += "date,"
-        error_chk = true
-    }
-    if(!data.status) {
-        error_msg += "status,"
-        error_chk = true
-    }
-    if(!data.number) {
-        error_msg += "number,"
-        error_chk = true
-    }
-    if(error_chk) {
-        error_msg += "]"
-        res.status(400).json({msg:error_msg})
-    }
-    db.collection('fabricRoll').doc().set({
-        date : data.date,
-        supplier: data.supplier,
-        fabricType: data.fabricType,
-        fabricColor: data.fabricColor,
-        fabricColorCode: data.fabricColorCode,
-        status : data.status,
-        size: data.size,
-        weight: data.weight
-    })
-    res.status(200).send('Add fabric roll successful.');
-});
-app.delete('/',(req, res) => {
-    db.collection("fabricRoll").doc(req.query.id).delete().then(function() {
-        res.status(200).send("Document successfully deleted!");
-    }).catch(function(error) {
-        res.status(401).send("Error removing document: ", error);
-    });
-});
-*/
 module.exports = app
+
+
+app.post('/',(req, res) => {
+  console.log('start post bags')
+  /*console.log(req.body)
+  var data = req.body
+  let bags = data.bags
+  console.log(typeof data)
+  console.log(bags)
+  console.log(bags[0].id)*/
+  console.log("post bags")
+  console.log(req.body)
+  if(typeof req.body == 'object') {
+    console.log("object")
+    var data = req.body
+    console.log(data.bags[0].fabrics[0].id)
+  } else if(isJson(req.body)) {
+    console.log("json")
+    var data = JSON.parse(req.body)
+    console.log(data.bags[0].fabrics[0].id)
+  } else {
+    console.log("string")
+    res.status(400).json({msg:"not json format"})
+  }
+  let bags = data.bags
+  console.log(bags[0].id)
+  //res.status(200).send('OK')
+    bags.forEach(async (bag) => {
+      console.log('foreach bags')
+      console.log(bag);
+      await addBag(bag)
+    }).then(() => {
+      res.status(200).send('Add bags successful.')
+    }).catch((err) => {
+      console.log(err)
+      res.status(401).send("ERROR : ", err)
+    })
+})

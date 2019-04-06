@@ -2,8 +2,67 @@ const express = require('express');
 const app = express();
 const db = require('./db_connect');
 
-app.get('/',(req, res) => {
-    var employeeArr = [];
+const isJson = str => {
+    try {
+        JSON.parse(str);
+    } catch (err) {
+        return false;
+    }
+    return true;
+}
+
+/*app.use((req, res, next) => {
+    const userToken = req.header('userToken')
+    if(typeof userToken !== 'undefined' && userToken !== '') {
+        db.collection('employees').where('user.userToken', '==', userToken).get()
+        .then((snapshot) => {
+            if (snapshot.empty) {
+                res.status(400).json({error: 'userToken not found in db.'})
+            } else {
+                snapshot.docs.forEach((doc) => {
+                        if(doc.data().user.authority !== 'undefined' && doc.data().user.authority.manageSuppliers) {
+                            next()
+                        } else {
+                            res.status(400).json({error: 'User can\'t use fabricRolls API.'})
+                        }
+                })
+            }
+        })
+        .catch((err) => {
+            res.status(400).json({error: err})
+        })
+    } else {
+        res.status(400).json({error: 'There are not userToken.'})
+    }
+})*/
+
+const checkAuthority = (req, res, next) => {
+  const userToken = req.header('userToken')
+  if(typeof userToken !== 'undefined' && userToken !== '') {
+      db.collection('employees').where('user.userToken', '==', userToken).get()
+      .then((snapshot) => {
+          if (snapshot.empty) {
+              res.status(400).json({error: 'userToken not found in db.'})
+          } else {
+              snapshot.docs.forEach((doc) => {
+                      if(doc.data().user.authority !== 'undefined' && doc.data().user.authority.manageSuppliers) {
+                          next()
+                      } else {
+                          res.status(400).json({error: 'User can\'t use fabricRolls API.'})
+                      }
+              })
+          }
+      })
+      .catch((err) => {
+          res.status(400).json({error: err})
+      })
+  } else {
+      res.status(400).json({error: 'There are not userToken.'})
+  }
+}
+
+app.get('/', (req, res) => {
+    var employeeArr = []
     if(typeof req.query.id !== "undefined") {
         db.collection('supplier').doc(req.query.id).get()
         .then((doc) => {
@@ -16,12 +75,12 @@ app.get('/',(req, res) => {
                     note : doc.data().note
                 })
             } else {
-                res.send("No such document!");
+                res.send("No such document!")
             }
         })
-    .catch((err) => {
-        res.status(401).send('Error getting documents', err);
-    });
+        .catch((err) => {
+          res.status(401).send('Error getting documents', err)
+        })
     }
     else if(typeof req.query.name !== "undefined") {
         db.collection('supplier').where('name', '==', req.query.name).get()
@@ -32,7 +91,7 @@ app.get('/',(req, res) => {
                     name : doc.data().name,
                     phoneNumber : doc.data().phoneNumber,
                     address : doc.data().address,
-                    note : doc.data().note  
+                    note : doc.data().note
                 })
             });
             res.status(200).send(employeeArr);
@@ -50,7 +109,7 @@ app.get('/',(req, res) => {
                     name : doc.data().name,
                     phoneNumber : doc.data().phoneNumber,
                     address : doc.data().address,
-                    note : doc.data().note               
+                    note : doc.data().note
                 })
             });
             res.status(200).send(employeeArr);
@@ -61,26 +120,47 @@ app.get('/',(req, res) => {
     }
 });
 
-app.put('/',(req, res) => {
+app.put('/', checkAuthority, (req, res) => {
     if(typeof req.query.id !== "undefined") {
         if(typeof req.body == 'object') {
             var data = req.body
-        }
-        else {
+        } else if(isJson(req.body)) {
             var data = JSON.parse(req.body)
+        } else {
+            res.status(400).json({msg:"not json format"})
         }
-        console.log(data)
+        var error_msg = "Error no field ["
+        var error_chk = false
+        if(!data.name) {
+            error_msg += "name,"
+            error_chk = true
+        }
+        if(!data.phoneNumber) {
+            error_msg += "phoneNumber,"
+            error_chk = true
+        }
+        if(!data.address) {
+            error_msg += "address,"
+            error_chk = true
+        }
+        if(!data.note) {
+            data.note = {}
+        }
+        if(error_chk) {
+            error_msg += "]"
+            res.status(400).json({msg:error_msg})
+        }
         var sfDocRef = db.collection("supplier").doc(req.query.id);
         return db.runTransaction(function(transaction) {
             return transaction.get(sfDocRef).then(function(sfDoc) {
                 if (!sfDoc.exists) {
                     res.status(404).json({error : "Document does not exist!"})
                     //throw "Document does not exist!";
-                }       
-                transaction.update(sfDocRef, { 
+                }
+                transaction.update(sfDocRef, {
                     name : data.name,
-                    phoneNumber : data.phoneNumber, 
-                    address : data.address,        
+                    phoneNumber : data.phoneNumber,
+                    address : data.address,
                     note : data.note
                 });
             });
@@ -94,25 +174,46 @@ app.put('/',(req, res) => {
         res.send(401).send("not found id")
     }
 });
-app.post('/',(req, res) => {
+app.post('/', checkAuthority, (req, res) => {
     // add feature console log check data when data is undefined
     if(typeof req.body == 'object') {
         var data = req.body
-    } 
-    else {
+    } else if(isJson(req.body)) {
         var data = JSON.parse(req.body)
-    } 
-    console.log(data)
+    } else {
+        res.status(400).json({msg:"not json format"})
+    }
+    var error_msg = "Error no field ["
+    var error_chk = false
+    if(!data.name) {
+        error_msg += "name,"
+        error_chk = true
+    }
+    if(!data.phoneNumber) {
+        error_msg += "phoneNumber,"
+        error_chk = true
+    }
+    if(!data.address) {
+        error_msg += "address,"
+        error_chk = true
+    }
+    if(!data.note) {
+        data.note = {}
+    }
+    if(error_chk) {
+        error_msg += "]"
+        res.status(400).json({msg:error_msg})
+    }
     var docRef = db.collection('supplier').doc();
-    var setAda = docRef.set({       
+    var setAda = docRef.set({
         name : data.name,
-        phoneNumber : data.phoneNumber, 
-        address : data.address,        
-        note : data.note 
+        phoneNumber : data.phoneNumber,
+        address : data.address,
+        note : data.note
     })
     res.status(200).send('Add complete');
 });
-app.delete('/',(req, res) => {
+app.delete('/', checkAuthority, (req, res) => {
     db.collection("supplier").doc(req.query.id).delete().then(function() {
         res.status(200).send("Document successfully deleted!");
     }).catch(function(error) {

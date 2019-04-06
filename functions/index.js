@@ -1,40 +1,46 @@
 const functions = require('firebase-functions')
 const express = require('express')
 const cors = require('cors')
-const tokenApi = "CC80274793D170ADF2FE745398A9C458D81357557F89392203C0052CE4F99748"
 
 const fabricRoll = require('./api_modules/fabricRoll')
 const fabricType = require('./api_modules/fabricType')
 const fabricColor = require('./api_modules/fabricColor')
+const fabricUse = require('./api_modules/fabricUse')
 const employee = require('./api_modules/employee')
+const employees = require('./api_modules/employees')
 const user = require('./api_modules/user')
 const supplier = require('./api_modules/supplier')
 const customer = require('./api_modules/customer')
+const position = require('./api_modules/position')
 const signin = require('./api_modules/signin')
+const authentication = require('./api_modules/authentication')
+const bags = require('./api_modules/bags')
+const working = require('./api_modules/working')
+const blockScreen = require('./api_modules/blockScreen')
 
 const api = express()
 api.use(cors())
-api.use('/fabricroll',fabricRoll)
-api.use('/fabrictype',fabricType)
-api.use('/fabriccolor',fabricColor)
-api.use('/supplier',supplier)
-api.use('/employee',employee)
-api.use('/customer',customer)
-api.use('/user',user)
-api.use('/signin',signin)
-
 api.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*")
+    res.header("Access-Control-Allow-Methods","GET,PUT,POST,DELETE,OPTION")
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
     next();
-});
-api.use((req, res, next) => {
-    const auth = req.headers['auth']
-    if(typeof auth!=='undefined' && auth==tokenApi) {
-        next()
-    } else {
-        res.json({error:'Permission denied!'})
-    }
 })
+
+api.use('/', authentication)
+api.use('/signin', signin)
+api.use('/fabricroll', fabricRoll)
+api.use('/fabrictype', fabricType)
+api.use('/fabriccolor', fabricColor)
+api.use('/supplier', supplier)
+api.use('/bags', bags)
+api.use('/working', working)
+//api.use('/employee', employee)
+api.use('/customer', customer)
+api.use('/user', user)
+api.use('/position', position)
+api.use('/employee', employees)
+api.use('/fabricuse', fabricUse)
+api.use('/blockscreen', blockScreen)
 
 exports.api = functions.https.onRequest(api)

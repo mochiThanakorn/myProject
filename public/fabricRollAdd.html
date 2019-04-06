@@ -1,0 +1,106 @@
+<html>
+    <head>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    </head>
+    <body>
+        <a>Supplier : </a><select id="sel-supplier"></select><br>
+        <a>Type : </a><select id="sel-type"></select><br>
+        <a>Color : </a><select id="sel-color"></select><br>
+        <a>Size : </a><input id="in-size" type="text" placeholder="size"><br>
+        <a>Weight : </a><input id="in-weight" type="text" placeholder="weight"><br>
+        <button id="btn-add-emp">Add</button>
+        <button onclick="window.location.href='fabricRollTable.html'">Back</button>
+    </body>
+    <script>
+      $(()=>{
+        $.ajax({
+            url: 'https://us-central1-mochi-cpe-api.cloudfunctions.net/api/supplier',
+            type: 'GET',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'auth': 'CC80274793D170ADF2FE745398A9C458D81357557F89392203C0052CE4F99748'
+            },
+            contentType: 'application/json; charset=utf-8',
+            success: (result) => {
+                console.log(result)
+                let str = "<option value='' selected disabled hidden>Choose here</option>";
+                for(i=0;i<result.length;i++) {
+                    str+="<option value='"+result[i].id+"'>"+result[i].name+"</option>"
+                }
+                $("#sel-supplier").html($("#sel-supplier").html()+str)
+            },
+            error: error => {
+                console.log(error)
+            }
+        })
+        $.ajax({
+            url: 'https://us-central1-mochi-cpe-api.cloudfunctions.net/api/fabrictype',
+            type: 'GET',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'auth': 'CC80274793D170ADF2FE745398A9C458D81357557F89392203C0052CE4F99748'
+            },
+            contentType: 'application/json; charset=utf-8',
+            success: (result) => {
+                console.log(result)
+                let str = "<option value='' selected disabled hidden>Choose here</option>";
+                for(i=0;i<result.length;i++) {
+                    str+="<option value='"+result[i].id+"'>"+result[i].name+"</option>"
+                }
+                $("#sel-type").html(str)
+            },
+            error: error => {
+                console.log(error)
+            }
+        })
+        $.ajax({
+            url: 'https://us-central1-mochi-cpe-api.cloudfunctions.net/api/fabriccolor',
+            type: 'GET',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'auth': 'CC80274793D170ADF2FE745398A9C458D81357557F89392203C0052CE4F99748'
+            },
+            contentType: 'application/json; charset=utf-8',
+            success: (result) => {
+                console.log(result)
+                let str = "<option value='' selected disabled hidden>Choose here</option>";
+                for(i=0;i<result.length;i++) {
+                    str+="<option style='color:"+result[i].code+"' value='"+result[i].id+"'>"+result[i].name+"</option>"
+                }
+                $("#sel-color").html(str)
+            },
+            error: error => {
+                console.log(error)
+            }
+        })
+      })
+        $("#btn-add-emp").click(()=>{
+                $.ajax({
+                    url: 'https://us-central1-mochi-cpe-api.cloudfunctions.net/api/fabricroll',
+                    type: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'auth': 'CC80274793D170ADF2FE745398A9C458D81357557F89392203C0052CE4F99748'
+                    },
+                    data: {
+                        'idSupplier': document.getElementById("sel-supplier").options[document.getElementById("sel-supplier").selectedIndex].value,
+                        'idFabricType': document.getElementById("sel-type").options[document.getElementById("sel-type").selectedIndex].value,
+                        'idFabricColor': document.getElementById("sel-color").options[document.getElementById("sel-color").selectedIndex].value,
+                        'supplier': document.getElementById("sel-supplier").options[document.getElementById("sel-supplier").selectedIndex].text,
+                        'fabricType': document.getElementById("sel-type").options[document.getElementById("sel-type").selectedIndex].text,
+                        'fabricColor': document.getElementById("sel-color").options[document.getElementById("sel-color").selectedIndex].text,
+                        'size': $("#in-size").val(),
+                        'weight': $("#in-weight").val()
+                    },
+                    contentType: 'application/json; charset=utf-8',
+                    success: (result) => {
+                        console.log(result)
+                        window.location.href='fabricRollTable.html'
+                    },
+                    error: error => {
+                        console.log(error)
+                    }
+                });
+            })
+    </script>
+</html>

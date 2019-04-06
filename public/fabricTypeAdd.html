@@ -1,0 +1,33 @@
+<html>
+    <head>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    </head>
+    <body>
+        <a>Name : </a><input id="in-name" type="text" placeholder="name"><br>
+        <button id="btn-add-emp">Add</button>
+        <button onclick="window.location.href='fabricTypeTable.html'">Back</button>
+    </body>
+    <script>
+        $("#btn-add-emp").click(()=>{
+                $.ajax({
+                    url: 'https://us-central1-mochi-cpe-api.cloudfunctions.net/api/fabrictype',
+                    type: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'auth': 'CC80274793D170ADF2FE745398A9C458D81357557F89392203C0052CE4F99748'
+                    },
+                    data: {
+                        'name': $("#in-name").val(),
+                    },
+                    contentType: 'application/json; charset=utf-8',
+                    success: (result) => {
+                        console.log(result)
+                        window.location.href='fabricTypeTable.html'
+                    },
+                    error: error => {
+                        console.log(error)
+                    }
+                });
+            })
+    </script>
+</html>
