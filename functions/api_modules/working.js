@@ -100,6 +100,8 @@ app.get('/idbag', async (req, res) => {
   res.status(200).send(""+idBag)
 })
 
+
+
 app.put('/fabricrolls',(req, res) => {
     if(typeof req.query.id !== "undefined") {
         if(typeof req.body == 'object') {
@@ -278,6 +280,74 @@ app.put('/test',async (req, res) => {
     res.status(400).send(result)
   }
 })
+//function
+const updateStatusFabricRoll = (id) => {
+  var docRef = db.collection('fabricRoll').doc(id)
+  var transaction = db.runTransaction(t => {
+    return t.get(docRef).then(doc => {
+        var status = doc.data().status
+        if (status == 'wait') {
+          t.update(docRef, {status: 'scan'})
+          //console.log('update status of fabric roll success')
+          return Promise.resolve({
+            status: 1,
+            data: {
+              id: doc.id,
+              data: doc.data()
+            }
+          })
+        } else if (status == 'scan')  {
+          t.update(docRef, {status: 'scan'})
+          //console.log('error: fabric roll is already scan')
+          return Promise.resolve({
+            status: 2,
+            data: {
+              id: doc.id,
+              data: doc.data()
+            }
+          })
+        } else if (status == 'use')  {
+          t.update(docRef, {status: 'use'})
+          //console.log('error: fabric roll is already use')
+          return Promise.resolve({
+            status: 3,
+            data: {
+              id: doc.id,
+              data: doc.data()
+            }
+          })
+        }
+      })
+  })
+  return transaction
+}
+const addFabricRollToWorking = (idWorking, fabricRoll) => {
+  var docRef = db.collection('working').doc(idWorking)
+  var transaction = db.runTransaction(t => {
+    return t.get(docRef).then(doc => {
+      var newFabricRoll = {
+        id: fabricRoll.id,
+        ColorCode: fabricRoll.data.fabricColorCode,
+        ColorName: fabricRoll.data.fabricColor,
+        TypeName: fabricRoll.data.fabricType,
+        idFabric: fabricRoll.data.idFabric,
+        size: fabricRoll.data.size,
+        weight: fabricRoll.data.weight,
+        level: 0,
+        idBag: ""
+      }
+      t.update(docRef, {
+        fabricRolls: [...doc.data().fabricRolls, newFabricRoll]
+      })
+      //console.log('update status of fabric roll success')
+      return Promise.resolve({
+        status: 'ok'
+      })
+    })
+  })
+  return transaction
+}
+
 
 app.put('/scan', async (req, res) => {
     if(typeof req.query.id == "undefined") {
@@ -312,45 +382,115 @@ app.put('/scan', async (req, res) => {
           res.status(400).send(result)
         }*/
 
-        var fabricRollRef = db.collection("fabricRoll").doc(data.idFabricRoll);
+        var result = await updateStatusFabricRoll(data.idFabricRoll)
+        console.log(result.status)
+        if(result.status != 1) {
+          res.status(200).json({
+            status: result.status
+          })
+        } else {
+          var fabricRollRef = db.collection("fabricRoll").doc(data.idFabricRoll);
+          return db.runTransaction((transaction) => {
+              return transaction.get(fabricRollRef).then((fabricRollDoc) => {
+                  if (!fabricRollDoc.exists) {
+                      res.status(404).json({error : "Document does not exist!"})
+                  }
+                  var workingRef = db.collection("working").doc(req.query.id);
+                  return db.runTransaction((transaction) => {
+                      return transaction.get(workingRef).then((workingDoc) => {
+                          if (!workingDoc.exists) {
+                              res.status(404).json({error : "Document does not exist!"})
+                          }
+                          let fabricRoll = {
+                            id: fabricRollDoc.id,
+                            idFabric: fabricRollDoc.data().idFabric,
+                            ColorName: fabricRollDoc.data().fabricColor,
+                            ColorCode: fabricRollDoc.data().fabricColorCode,
+                            TypeName: fabricRollDoc.data().fabricType,
+                            size: fabricRollDoc.data().size,
+                            weight: fabricRollDoc.data().weight,
+                            level: 0,
+                            idBag: ""
+                          }
+                          var new_fabricRolls = [...workingDoc.data().fabricRolls, fabricRoll]
+                          transaction.update(workingRef, {
+                              fabricRolls: new_fabricRolls
+                          })
+                      })
+                  }).then(() => {
+                      res.status(200).send({
+                        status: result.status
+                      })
+                  }).catch((errorMsg) => {
+                      res.status(401).json({error : errorMsg})
+                  })
+              })
+          }).then(() => {
+              res.status(200).send({
+                status: result.status
+              })
+          }).catch((errorMsg) => {
+              res.status(401).json({error : errorMsg})
+          })
+        }
+})
+
+app.put('/',(req, res) => {
+    if(typeof req.query.id !== "undefined") {
+        if(typeof req.body == 'object') {
+            var data = req.body
+        } else if(isJson(req.body)) {
+            var data = JSON.parse(req.body)
+        } else {
+            res.status(400).json({msg:"not json format"})
+        }
+        var error_msg = "Error no field ["
+        var error_chk = false
+        if(!data.date) {
+          error_msg += "date,"
+          error_chk = true
+        }
+        if(!data.state) {
+            error_msg += "state,"
+            error_chk = true
+        }
+        if(!data.empCut) {
+            error_msg += "empCut,"
+            error_chk = true
+        }
+        if(!data.empSpread) {
+            error_msg += "empSpread,"
+            error_chk = true
+        }
+        if(!data.tableNum) {
+            error_msg += "tableNum,"
+            error_chk = true
+        }
+        if(!data.markNum) {
+            error_msg += "markNum,"
+            error_chk = true
+        }
+        if(error_chk) {
+            error_msg += "]"
+            res.status(400).json({msg: error_msg})
+        }
+        var sfDocRef = db.collection("working").doc(req.query.id)
         return db.runTransaction((transaction) => {
-            return transaction.get(fabricRollRef).then((fabricRollDoc) => {
-                if (!fabricRollDoc.exists) {
+            return transaction.get(sfDocRef).then((sfDoc) => {
+                if (!sfDoc.exists) {
                     res.status(404).json({error : "Document does not exist!"})
                 }
-                var workingRef = db.collection("working").doc(req.query.id);
-                return db.runTransaction((transaction) => {
-                    return transaction.get(workingRef).then((workingDoc) => {
-                        if (!workingDoc.exists) {
-                            res.status(404).json({error : "Document does not exist!"})
-                        }
-                        let fabricRoll = {
-                          id: fabricRollDoc.id,
-                          idFabric: fabricRollDoc.data().idFabric,
-                          ColorName: fabricRollDoc.data().fabricColor,
-                          ColorCode: fabricRollDoc.data().fabricColorCode,
-                          TypeName: fabricRollDoc.data().fabricType,
-                          size: fabricRollDoc.data().size,
-                          weight: fabricRollDoc.data().weight,
-                          level: 0,
-                          idBag: ""
-                        }
-                        var new_fabricRolls = [...workingDoc.data().fabricRolls, fabricRoll]
-                        transaction.update(workingRef, {
-                            fabricRolls: new_fabricRolls
-                        })
-                    })
-                }).then(() => {
-                    res.status(200).send("Transaction successfully committed!")
-                }).catch((errorMsg) => {
-                    res.status(401).json({error : errorMsg})
-                })
+                transaction.update(sfDocRef, data)
             })
         }).then(() => {
             res.status(200).send("Transaction successfully committed!")
         }).catch((errorMsg) => {
             res.status(401).json({error : errorMsg})
         })
+    }
+    else {
+        res.send(401).send("not found id")
+    }
 })
 
 //finish
@@ -391,6 +531,7 @@ app.post('/',(req, res) => {
     let doc = db.collection('working').doc()
     doc.set({
         date: data.date,
+        state: 1,
         empCut: data.empCut,
         empSpread: data.empSpread,
         tableNum: data.tableNum,
@@ -403,6 +544,7 @@ app.post('/',(req, res) => {
     })
 
 })
+
 app.delete('/',(req, res) => {
     db.collection("working").doc(req.query.id).delete().then(() => {
         res.status(200).send("Document successfully deleted!")

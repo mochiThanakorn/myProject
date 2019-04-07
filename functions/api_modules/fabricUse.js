@@ -170,16 +170,20 @@ app.post('/',(req, res) => {
         error_msg += "markNum,"
         error_chk = true
     }
-    if(!data.bags) {
-        error_msg += "bags,"
+    if(!data.fabrics) {
+        error_msg += "fabrics,"
         error_chk = true
     }
     if(error_chk) {
         error_msg += "]"
         res.status(400).json({msg:error_msg})
     }
-    db.collection('fabricUse').doc().set(data)
-    res.status(200).send('Add fabricUse successful.');
+    var doc = db.collection('fabricUse').doc()
+    doc.set(data).then(() => {
+      res.status(200).send(doc.id)
+    }).catch((err) => {
+      res.status(400).send(err)
+    })
 })
 
 app.delete('/',(req, res) => {
