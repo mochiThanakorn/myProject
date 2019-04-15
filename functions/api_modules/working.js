@@ -15,10 +15,13 @@ app.get('/',(req, res) => {
     if(typeof req.query.id !== "undefined") {
         db.collection('working').doc(req.query.id).get()
         .then((doc) => {
+          //round: data.round,
             if (doc.exists) {
                 res.json({
                     id : doc.id,
                     date: doc.data().date,
+                    round: doc.data().round,
+                    state: doc.data().state,
                     empCut: doc.data().empCut,
                     empSpread: doc.data().empSpread,
                     tableNum: doc.data().tableNum,
@@ -38,9 +41,12 @@ app.get('/',(req, res) => {
       db.collection('working').get()
       .then((snapshot) => {
           snapshot.docs.forEach((doc) => {
+            //round: data.round,
               data.push({
                   id : doc.id,
                   date: doc.data().date,
+                  round: doc.data().round,
+                  state: doc.data().state,
                   empCut: doc.data().empCut,
                   empSpread: doc.data().empSpread,
                   tableNum: doc.data().tableNum,
@@ -141,6 +147,25 @@ app.put('/fabricrolls',(req, res) => {
       }
 })
 
+app.put('/idbag', (req, res) => {
+  if(typeof req.body == 'object') {
+      var data = req.body
+  } else if(isJson(req.body)) {
+      var data = JSON.parse(req.body)
+  } else {
+      res.status(400).json({msg: "not json format"})
+  }
+  db.collection("bagCount").doc("count")
+  .set( {
+    number: data.number
+  })
+  .then((doc) => {
+    res.status(200).send("Ok")
+  })
+  .catch((err) => {
+    res.status(400).send(err)
+  })
+})
 /*const IsUseOrScanFabricRolls = (id) => {
   console.log('IsUseOrScanFabricRolls')
   return new Promise ((resolve, reject) => {
@@ -321,6 +346,7 @@ const updateStatusFabricRoll = (id) => {
   })
   return transaction
 }
+
 const addFabricRollToWorking = (idWorking, fabricRoll) => {
   var docRef = db.collection('working').doc(idWorking)
   var transaction = db.runTransaction(t => {
@@ -371,17 +397,6 @@ app.put('/scan', async (req, res) => {
             res.status(400).json({msg: error_msg})
         }
 
-        //พัง
-        /*console.log('do func')
-        let result = await IsUseOrScanFabricRolls(data.idFabricRoll)
-        if(result) {
-          console.log(200)
-          res.status(200).send(result)
-        } else {
-          console.log(400)
-          res.status(400).send(result)
-        }*/
-
         var result = await updateStatusFabricRoll(data.idFabricRoll)
         console.log(result.status)
         if(result.status != 1) {
@@ -409,8 +424,8 @@ app.put('/scan', async (req, res) => {
                             TypeName: fabricRollDoc.data().fabricType,
                             size: fabricRollDoc.data().size,
                             weight: fabricRollDoc.data().weight,
-                            level: 0,
-                            idBag: ""
+                            level: null,
+                            idBag: null
                           }
                           var new_fabricRolls = [...workingDoc.data().fabricRolls, fabricRoll]
                           transaction.update(workingRef, {
@@ -435,6 +450,37 @@ app.put('/scan', async (req, res) => {
         }
 })
 
+/*const updateStatusFabricRolls = (id, data) => {
+  var docRef = db.collection('fabricRoll').doc(id)
+  var transaction = db.runTransaction(t => {
+    return t.get(docRef).then(doc => {
+        var status = doc.data().status
+        if (status == 'wait') {
+          t.update(docRef, {status: 'scan'})
+          return Promise.resolve({
+            status: 1,
+            data: {
+              id: doc.id,
+              data: doc.data()
+            }
+          })
+        }
+      })
+  })
+  return transaction
+}*/
+
+const useFabricRoll = (id) => {
+  var docRef = db.collection('fabricRoll').doc(id)
+  var transaction = db.runTransaction(t => {
+    return t.get(docRef).then(doc => {
+        t.update(docRef, {status: 'use'})
+        return Promise.resolve("ok")
+      })
+  })
+  return transaction
+}
+
 app.put('/',(req, res) => {
     if(typeof req.query.id !== "undefined") {
         if(typeof req.body == 'object') {
@@ -442,7 +488,7 @@ app.put('/',(req, res) => {
         } else if(isJson(req.body)) {
             var data = JSON.parse(req.body)
         } else {
-            res.status(400).json({msg:"not json format"})
+            res.status(401).json({msg:"not json format"})
         }
         var error_msg = "Error no field ["
         var error_chk = false
@@ -450,6 +496,10 @@ app.put('/',(req, res) => {
           error_msg += "date,"
           error_chk = true
         }
+        /*if(!data.round) {
+            error_msg += "round,"
+            error_chk = true
+        }*/
         if(!data.state) {
             error_msg += "state,"
             error_chk = true
@@ -472,29 +522,65 @@ app.put('/',(req, res) => {
         }
         if(error_chk) {
             error_msg += "]"
-            res.status(400).json({msg: error_msg})
+            res.status(402).json({msg: error_msg})
         }
         var sfDocRef = db.collection("working").doc(req.query.id)
         return db.runTransaction((transaction) => {
-            return transaction.get(sfDocRef).then((sfDoc) => {
-                if (!sfDoc.exists) {
-                    res.status(404).json({error : "Document does not exist!"})
+            return transaction.get(sfDocRef).then(async (doc) => {
+                if (!doc.exists) {
+                    res.status(403).json({error : "Document does not exist!"})
+                }
+                if(data.state == '5') {
+                  console.log("state = 5")
+                  for (var i = 0; i < doc.data().fabricRolls.length; i++) {
+                    await useFabricRoll(doc.data().fabricRolls[i].id)
+                  }
+                }
+                //round: data.round,
+                var d = {
+                    date: data.date,
+                    state: data.state,
+                    round: data.round,
+                    empCut: data.empCut,
+                    empSpread: data.empSpread,
+                    tableNum: data.tableNum,
+                    markNum: data.markNum,
+                    fabricRolls: data.fabricRolls
                 }
                 transaction.update(sfDocRef, data)
             })
         }).then(() => {
             res.status(200).send("Transaction successfully committed!")
-        }).catch((errorMsg) => {
-            res.status(401).json({error : errorMsg})
+        }).catch((err) => {
+          console.log(err)
+            res.status(404).json({error : err})
         })
     }
     else {
-        res.send(401).send("not found id")
+        res.send(400).send("not found id")
     }
 })
 
+const getLastRound = (date, tableNum) => {
+  var count = 0;
+  console.log("run getLastRound"+date+tableNum)
+  return db.collection('working').where("date", "==", date).where("tableNum", "==", tableNum).get()
+  .then((snapshot) => {
+      snapshot.docs.forEach((doc) => {
+          count++
+      })
+      console.log("count = "+(count+1))
+      return Promise.resolve(count+1)
+  })
+  .catch((err) => {
+    console.log(err)
+    return Promise.reject(err)
+    //res.status(401).json({error:err});
+  })
+}
+
 //finish
-app.post('/',(req, res) => {
+app.post('/',async (req, res) => {
     if(typeof req.body == 'object') {
         var data = req.body
     } else if(isJson(req.body)) {
@@ -528,10 +614,14 @@ app.post('/',(req, res) => {
         error_msg += "]"
         res.status(400).json({msg: error_msg})
     }
+    //console.log(await getLastRound(data.date, data.tableNum))
+    var round = await getLastRound(data.date, data.tableNum)
+    console.log("ROUND = "+round)
     let doc = db.collection('working').doc()
     doc.set({
         date: data.date,
         state: 1,
+        round: round,
         empCut: data.empCut,
         empSpread: data.empSpread,
         tableNum: data.tableNum,
@@ -542,30 +632,69 @@ app.post('/',(req, res) => {
       console.log(doc.id)
       res.status(200).send(doc.id)
     })
-
 })
 
+const resetFabricRoll = (id) => {
+  var docRef = db.collection('fabricRoll').doc(id)
+  var transaction = db.runTransaction(t => {
+    return t.get(docRef).then(doc => {
+        t.update(docRef, {status: 'wait'})
+        return Promise.resolve("ok")
+      })
+  })
+  return transaction
+}
+
 app.delete('/',(req, res) => {
-    db.collection("working").doc(req.query.id).delete().then(() => {
-        res.status(200).send("Document successfully deleted!")
-    }).catch((error) => {
-        res.status(401).send("Error removing document: ", error)
-    });
-});
+  var sfDocRef = db.collection("working").doc(req.query.id)
+  return db.runTransaction((transaction) => {
+      return transaction.get(sfDocRef).then(async (doc) => {
+          if (!doc.exists) {
+              res.status(403).json({error : "Document does not exist!"})
+          }
+          for (var i = 0; i < doc.data().fabricRolls.length; i++) {
+            await resetFabricRoll(doc.data().fabricRolls[i].id)
+          }
+          transaction.update(sfDocRef, doc.data())
+      })
+  }).then(() => {
+      res.status(200).send("Transaction successfully committed!")
+      db.collection("working").doc(req.query.id).delete().then(() => {
+          res.status(200).send("Document successfully deleted!")
+      }).catch((error) => {
+          res.status(401).send("Error removing document: ", error)
+      })
+  }).catch((err) => {
+    console.log(err)
+      res.status(404).json({error : err})
+  })
+})
+
+const delFabricRollInWorking = (id) => {
+  var docRef = db.collection('fabricRoll').doc(id)
+  var transaction = db.runTransaction(t => {
+    return t.get(docRef).then(doc => {
+        t.update(docRef, {status: 'wait'})
+        return Promise.resolve("ok")
+    })
+  })
+  return transaction
+}
 
 app.delete('/fabricroll',(req, res) => {
+  console.log('DELETE /working/fabricroll')
   if(typeof req.body == 'object') {
       var data = req.body
   } else if(isJson(req.body)) {
       var data = JSON.parse(req.body)
   } else {
-      res.status(400).json({msg: "not json format"})
+      res.status(401).json({msg: "not json format"})
   }
   var sfDocRef = db.collection("working").doc(req.query.id)
         return db.runTransaction((transaction) => {
             return transaction.get(sfDocRef).then(async (docs) => {
                 if (!docs.exists) {
-                    res.status(400).send({error : "Document does not exist!"})
+                    res.status(402).send({error : "Document does not exist!"})
                 }
                 const deleteFabricRoll = async (docs, id) => {
                     let new_fabricRolls = []
@@ -577,7 +706,6 @@ app.delete('/fabricroll',(req, res) => {
                                 new_fabricRolls.push(docs.fabricRolls[j])
                             }
                         }
-
                         console.log(new_fabricRolls)
                     return new_fabricRolls
                 }
@@ -586,10 +714,14 @@ app.delete('/fabricroll',(req, res) => {
                         fabricRolls: new_fabricRolls
                 })
             })
-        }).then(() => {
-            res.status(200).send("Transaction successfully committed!")
+        }).then(async () => {
+            var result = await delFabricRollInWorking(data.idFabricRoll)
+            if(result == "ok")
+              res.status(200).send("Transaction successfully committed!")
+            else
+              res.status(403).send(result)
         }).catch((err) => {
-            res.status(400).send(err)
+            res.status(404).send(err)
         })
 })
 
