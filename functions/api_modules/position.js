@@ -81,8 +81,8 @@ app.put('/',(req, res) => {
             res.status(400).json({msg:"not json format"})
         }
         var sfDocRef = db.collection("position").doc(req.query.id);
-        return db.runTransaction(function(transaction) {
-            return transaction.get(sfDocRef).then(function(sfDoc) {
+        return db.runTransaction((transaction) => {
+            return transaction.get(sfDocRef).then((sfDoc) => {
                 if (!sfDoc.exists) {
                     res.status(404).json({error : "Document does not exist!"})
                     //throw "Document does not exist!";
@@ -91,9 +91,9 @@ app.put('/',(req, res) => {
                     name : data.name
                 });
             });
-        }).then(function() {
+        }).then(() => {
             res.status(200).send("Transaction successfully committed!")
-        }).catch(function(errorMsg) {
+        }).catch((errorMsg) => {
             res.status(401).json({error : errorMsg})
         });
     }

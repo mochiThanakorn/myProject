@@ -132,6 +132,7 @@ app.post('/',(req, res) => {
     })
     res.status(200).send('Add fabric roll successful.');
 });
+
 app.delete('/',(req, res) => {
     db.collection("fabricType").doc(req.query.id).delete().then(function() {
         res.status(200).send("Document successfully deleted!");

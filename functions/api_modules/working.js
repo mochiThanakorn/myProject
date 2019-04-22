@@ -38,7 +38,7 @@ app.get('/',(req, res) => {
     }
     else {
       var data = []
-      db.collection('working').get()
+      db.collection('working').orderBy("date", "desc").orderBy("tableNum", "desc").orderBy("round", "desc").get()
       .then((snapshot) => {
           snapshot.docs.forEach((doc) => {
             //round: data.round,
@@ -360,7 +360,7 @@ const addFabricRollToWorking = (idWorking, fabricRoll) => {
         size: fabricRoll.data.size,
         weight: fabricRoll.data.weight,
         level: 0,
-        idBag: ""
+        idBag: null
       }
       t.update(docRef, {
         fabricRolls: [...doc.data().fabricRolls, newFabricRoll]

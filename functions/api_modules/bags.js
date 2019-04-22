@@ -200,16 +200,16 @@ app.get('/',(req, res) => {
         .then((snapshot) => {
             snapshot.docs.forEach((doc) => {
                 data.push({
-                    id : doc.id,
-                    idFabric : doc.data().idFabric,
-                    dateAdd : doc.data().dateAdd,
-                    dateUse : doc.data().dateUse,
+                    id: doc.id,
+                    idFabric: doc.data().idFabric,
+                    dateAdd: doc.data().dateAdd,
+                    dateUse: doc.data().dateUse,
                     supplier: doc.data().supplier,
                     fabricType: doc.data().fabricType,
                     fabricColor: doc.data().fabricColor,
                     fabricColorCode: doc.data().fabricColorCode,
                     printed: doc.data().printed,
-                    status : doc.data().status,
+                    status: doc.data().status,
                     size: doc.data().size,
                     weight: doc.data().weight
                 })
@@ -280,10 +280,6 @@ const updateFabricRolls = async docs => {
         console.log(docs.docs[i])
         await updateFabricRoll(docs.docs[i])
     }
-    /*docs.forEach(async doc => {
-        console.log(doc)
-        await updateFabricRoll(doc)
-    })*/
 }
 
 app.put('/multiple', (req, res) => {
