@@ -84,7 +84,11 @@ const validateOrderKey = (data) => {
         error_chk = true
     }
     if(!data.deposit) {
-        error_msg += ","
+        error_msg += "deposit,"
+        error_chk = true
+    }
+    if(!data.status) {
+        error_msg += "status,"
         error_chk = true
     }
     if(!data.deliveryDate) {
@@ -142,7 +146,8 @@ app.get('/', async (req, res) => {
                     deposit: doc.data().deposit,
                     deliveryDate: doc.data().deliveryDate,
                     note: doc.data().note,
-                    shippingCost: doc.data().shippingCost
+                    shippingCost: doc.data().shippingCost,
+                    status: doc.data().status
                 }
             })
             res.status(200).send(data)
@@ -153,7 +158,7 @@ app.get('/', async (req, res) => {
     }
     else {
         var data = []
-        db.collection('order').orderBy("idOrder").get()
+        db.collection('order').orderBy("idOrder", "desc").get()
         .then((snapshot) => {
             snapshot.docs.forEach((doc) => {
                 if(doc.id !== 'id') {          
@@ -171,7 +176,8 @@ app.get('/', async (req, res) => {
                         deposit: doc.data().deposit,
                         deliveryDate: doc.data().deliveryDate,
                         note: doc.data().note,
-                        shippingCost: doc.data().shippingCost
+                        shippingCost: doc.data().shippingCost,
+                        status: doc.data().status
                     })
                 }
             })
@@ -211,7 +217,8 @@ app.post('/', async (req, res) => {
         deposit: data.deposit,
         deliveryDate: data.deliveryDate,
         note: data.note,
-        shippingCost: data.shippingCost
+        shippingCost: data.shippingCost,
+        status: data.status
     }).then(() => {
         //แก้ใหม่ 22:44 29/4/2562
         increseIdOrder()
@@ -255,7 +262,8 @@ app.put('/', (req, res) => {
                 deposit: data.deposit,
                 deliveryDate: data.deliveryDate,
                 note: data.note,
-                shippingCost: data.shippingCost
+                shippingCost: data.shippingCost,
+                status: data.status
             })
         })
     }).then(() => {
