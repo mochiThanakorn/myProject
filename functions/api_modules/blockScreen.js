@@ -89,6 +89,80 @@ app.get('/id', async (req, res) => {
     }
 })
 
+app.get('/customer', (req, res) => {
+    if(typeof req.query.id == "undefined") {
+        res.status(400).json('There are no id')
+    } else if(typeof req.query.all == "undefined") {
+        res.status(400).json('There are no all')
+    }
+    else {
+        if(req.query.all == 'true') {
+            var data = []
+            db.collection('blockScreen').where('owner.id', '==', req.query.id).orderBy("idBlockScreen").get()
+            .then((snapshot) => {
+                if(snapshot.length == 0) {
+                    res.status(400).json("data is not exist!")
+                }
+                snapshot.docs.forEach((doc) => {
+                    if(doc.id !== 'id') {          
+                        data.push({
+                            id : doc.id,
+                            idBlockScreen: doc.data().idBlockScreen,
+                            name: doc.data().name,
+                            owner: doc.data().owner,
+                            date : doc.data().date
+                        })
+                    }
+                })
+                //res.status(200).send(data)
+                db.collection('blockScreen').where('owner.id', '==', 'general').orderBy("idBlockScreen").get()
+                .then((snapshot) => {
+                    snapshot.docs.forEach((doc) => {
+                        if(doc.id !== 'id') {          
+                            data.push({
+                                id : doc.id,
+                                idBlockScreen: doc.data().idBlockScreen,
+                                name: doc.data().name,
+                                owner: doc.data().owner,
+                                date : doc.data().date
+                            })
+                        }
+                    })
+                    res.status(200).send(data)
+                })
+                .catch((err) => {
+                    res.status(400).json({error:err})
+                })
+            })
+            .catch((err) => {
+                res.status(400).json({error:err})
+            })
+        } else if(req.query.all == 'false') {
+            var data = []
+            db.collection('blockScreen').where('owner.id', '==', req.query.id).orderBy("idBlockScreen").get()
+            .then((snapshot) => {
+                snapshot.docs.forEach((doc) => {
+                    if(doc.id !== 'id') {          
+                        data.push({
+                            id : doc.id,
+                            idBlockScreen: doc.data().idBlockScreen,
+                            name: doc.data().name,
+                            owner: doc.data().owner,
+                            date : doc.data().date
+                        })
+                    }
+                })
+                res.status(200).send(data)
+            })
+            .catch((err) => {
+                res.status(400).json({error:err})
+            })
+        } else {
+            res.status(400).json('bad request : all')
+        }
+    } 
+})
+
 app.get('/', async (req, res) => {
     if(typeof req.query.id !== "undefined") {
         var data

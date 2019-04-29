@@ -18,7 +18,6 @@ const getIdOrder = () => {
         return db.collection('order').doc('id').get()
         .then((doc) => {
             if (doc.exists) {
-                increseIdOrder()
                 return resolve('O-'+doc.data().id)
             } else {
                 //console.log("getIdOrder() Error : There are no document order id")
@@ -96,11 +95,8 @@ const validateOrderKey = (data) => {
         error_msg += "note,"
         error_chk = true
     }
-    if(!data.date) {
-        error_msg += "date,"
-        error_chk = true
-    }
     if(error_chk) {
+        error_msg = error_msg.substring(0, error_msg.length-1)
         error_msg += "]"
         return {
             status: false,
@@ -146,7 +142,6 @@ app.get('/', async (req, res) => {
                     deposit: doc.data().deposit,
                     deliveryDate: doc.data().deliveryDate,
                     note: doc.data().note,
-                    date: doc.data().date,
                     shippingCost: doc.data().shippingCost
                 }
             })
@@ -176,7 +171,6 @@ app.get('/', async (req, res) => {
                         deposit: doc.data().deposit,
                         deliveryDate: doc.data().deliveryDate,
                         note: doc.data().note,
-                        date: doc.data().date,
                         shippingCost: doc.data().shippingCost
                     })
                 }
@@ -217,9 +211,10 @@ app.post('/', async (req, res) => {
         deposit: data.deposit,
         deliveryDate: data.deliveryDate,
         note: data.note,
-        date: data.date,
         shippingCost: data.shippingCost
     }).then(() => {
+        //แก้ใหม่ 22:44 29/4/2562
+        increseIdOrder()
         res.status(200).send('Success')
         return true
     }).catch((err) => {
@@ -260,7 +255,6 @@ app.put('/', (req, res) => {
                 deposit: data.deposit,
                 deliveryDate: data.deliveryDate,
                 note: data.note,
-                date: data.date,
                 shippingCost: data.shippingCost
             })
         })
