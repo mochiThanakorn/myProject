@@ -44,6 +44,71 @@ app.use((req, res, next) => {
     }
 })
 
+const frGroupByColor = (data) => {
+    return new Promise((resolve, reject) => {
+        try {
+            var json = {
+                number: 0,
+                fabricRoll: []
+            }
+            var unique = [...new Set(data.map(d => {
+                if(d.fabricColor != undefined) 
+                return d.fabricColor
+            }))]
+            for (var i = 0; unique[i]; i++) {
+                var obj = {
+                    color: unique[i],
+                    colorCode: "",
+                    number: 0
+                }
+                data.forEach(data_col => {
+                    if(data_col.fabricColor === unique[i]) {
+                        if(!obj.colorCode) {
+                            obj.colorCode = data_col.fabricColorCode
+                        }
+                        json.number++
+                        obj.number++
+                    }
+                })
+                json.fabricRoll.push(obj)
+            }
+            return resolve(json)
+        } catch(err) {
+            return reject(err)
+        }        
+    })
+}
+app.get('/groupbycolor', (req, res) => {
+    var data = []
+    if(typeof req.query.status !== "undefined") {
+        db.collection('fabricRoll').where('status', '==', req.query.status).get()
+        .then(async (snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                data.push({
+                    id : doc.id,
+                    idFabric : doc.data().idFabric,
+                    dateAdd : doc.data().dateAdd,
+                    dateUse : doc.data().dateUse,
+                    supplier: doc.data().supplier,
+                    fabricType: doc.data().fabricType,
+                    fabricColor: doc.data().fabricColor,
+                    fabricColorCode: doc.data().fabricColorCode,
+                    printed: doc.data().printed,
+                    status : doc.data().status,
+                    size: doc.data().size,
+                    weight: doc.data().weight
+                })
+            })
+            var new_data = await frGroupByColor(data)
+            res.status(200).send(new_data)
+        })
+        .catch((err) => {
+            console.log(err)
+            res.status(400).send(err)
+        })
+    }
+})
+
 //printed
 app.get('/printed',(req, res) => {
     var dataArr = [];
