@@ -52,7 +52,6 @@ const frGroupByColor = (data) => {
                 fabricRoll: []
             }
             var unique = [...new Set(data.map(d => {
-                if(d.fabricColor != undefined) 
                 return d.fabricColor
             }))]
             for (var i = 0; unique[i]; i++) {
@@ -106,6 +105,8 @@ app.get('/groupbycolor', (req, res) => {
             console.log(err)
             res.status(400).send(err)
         })
+    } else {
+        res.status(400).send('There are no request query')
     }
 })
 
