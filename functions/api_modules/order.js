@@ -201,6 +201,43 @@ const groupByMonthAndYearOrder = (data, month, year) => {
     })
   }
 
+  const groupByYearOrder = (data, year) => {
+    return new Promise((resolve, reject) => {
+      try {
+          let newData = {
+            number: 0,
+            amount: 0,
+            data: []
+          }
+        for(let i = 1; i <= 12; i++) {
+            let tmpData = {
+                month: i,
+                year: year,
+                number: 0,
+                amount: 0,
+                orders: []
+              }
+              data.forEach((allData) => {
+                let date = allData.deliveryDate.split('/')
+                let m = date[1]*1
+                let y = date[2]*1
+                if(m == i && y == year) {
+                  tmpData.number += 1
+                  tmpData.amount += allData.totalPrice*1
+                  tmpData.orders.push(allData)
+                  newData.number += 1
+                  newData.amount += allData.totalPrice*1
+                }
+              })
+              newData.data.push(tmpData)
+        }  
+        return resolve(newData)
+      } catch(err) {
+        return reject(err)
+      }
+    })
+  }
+
 app.get('/statistic', (req, res) => {
     if(typeof req.query.month !== "undefined" && typeof req.query.year !== "undefined") {
         var data = []
@@ -234,9 +271,71 @@ app.get('/statistic', (req, res) => {
             console.log(err)
             res.status(400).json({msg : err})
         })
-    }/* else if(typeof req.query.year !== "undefined") {
-
-    }*/ else {
+    } else if(typeof req.query.year !== "undefined") {
+        var data = []
+        db.collection('order').orderBy("idOrder", "desc").get()
+        .then(async (snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                if(doc.id !== 'id') {          
+                    data.push({
+                        id : doc.id,
+                        idOrder: doc.data().idOrder,
+                        creator: doc.data().creator,
+                        createDate: doc.data().createDate,
+                        customer : doc.data().customer, 
+                        blockScreen: doc.data().blockScreen,
+                        detail: doc.data().detail,
+                        number: doc.data().number,
+                        pricePerPiece: doc.data().pricePerPiece,
+                        totalPrice: doc.data().totalPrice,
+                        deposit: doc.data().deposit,
+                        deliveryDate: doc.data().deliveryDate,
+                        note: doc.data().note,
+                        shippingCost: doc.data().shippingCost,
+                        status: doc.data().status
+                    })
+                }
+            })
+            let new_data = await groupByYearOrder(data, req.query.year)
+            res.status(200).send(new_data)
+        })
+        .catch((err) => {
+            console.log(err)
+            res.status(400).json({msg : err})
+        })
+    } else if(typeof req.query.date !== "undefined"){
+        var data = []
+        db.collection('order').where("deliveryDate", "==", req.query.date).get()
+        .then(async (snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                if(doc.id !== 'id') {          
+                    data.push({
+                        id : doc.id,
+                        idOrder: doc.data().idOrder,
+                        creator: doc.data().creator,
+                        createDate: doc.data().createDate,
+                        customer : doc.data().customer, 
+                        blockScreen: doc.data().blockScreen,
+                        detail: doc.data().detail,
+                        number: doc.data().number,
+                        pricePerPiece: doc.data().pricePerPiece,
+                        totalPrice: doc.data().totalPrice,
+                        deposit: doc.data().deposit,
+                        deliveryDate: doc.data().deliveryDate,
+                        note: doc.data().note,
+                        shippingCost: doc.data().shippingCost,
+                        status: doc.data().status
+                    })
+                }
+            })
+            let new_data = await groupByDateOrder(data)
+            res.status(200).send(new_data)
+        })
+        .catch((err) => {
+            console.log(err)
+            res.status(400).json({msg : err})
+        })
+    }{
         var data = []
         db.collection('order').orderBy("idOrder", "desc").get()
         .then(async (snapshot) => {
