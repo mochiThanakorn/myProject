@@ -71,12 +71,271 @@ const frGroupByColor = (data) => {
                 })
                 json.fabricRoll.push(obj)
             }
+            json.fabricRoll.sort((a, b) => a.number - b.number)
             return resolve(json)
         } catch(err) {
             return reject(err)
         }        
     })
 }
+
+const frGroupByType = (data) => {
+    return new Promise((resolve, reject) => {
+        try {
+            var json = {
+                number: 0,
+                fabricRoll: []
+            }
+            var unique = [...new Set(data.map(d => {
+                return d.fabricType
+            }))]
+            for (var i = 0; unique[i]; i++) {
+                var obj = {
+                    type: unique[i],
+                    number: 0
+                }
+                data.forEach(data_col => {
+                    if(data_col.fabricType === unique[i]) {
+                        json.number++
+                        obj.number++
+                    }
+                })
+                json.fabricRoll.push(obj)
+            }
+            json.fabricRoll.sort((a, b) => a.number - b.number)
+            return resolve(json)
+        } catch(err) {
+            return reject(err)
+        }        
+    })
+}
+
+const frGroupByType2 = (data) => {
+    return new Promise((resolve, reject) => {
+        try {
+            var fabricRoll = []
+            var unique = [...new Set(data.map(d => {
+                return d.fabricType
+            }))]
+            for (var i = 0; unique[i]; i++) {
+                var obj = {
+                    type: unique[i],
+                    number: 0
+                }
+                data.forEach(data_col => {
+                    if(data_col.fabricType === unique[i]) {
+                        //obj.data.push(data_col)
+                        obj.number++
+                    }
+                })
+                fabricRoll.push(obj)
+            }
+            return resolve(fabricRoll)
+        } catch(err) {
+            return reject(err)
+        }
+    })
+}
+const frGroupByColor2 = (data) => {
+    return new Promise((resolve, reject) => {
+        try {
+        var fabricRoll = []
+        var unique = [...new Set(data.map(d => {
+            return d.fabricColor
+        }))]
+        for (var i = 0; unique[i]; i++) {
+            var obj = {
+                color: unique[i],
+                colorCode: "",
+                number: 0
+            }
+            data.forEach(data_col => {
+                if(data_col.fabricColor === unique[i]) {
+                    if(!obj.colorCode) {
+                        obj.colorCode = data_col.fabricColorCode
+                    }
+                    obj.number++
+                }
+            })
+            fabricRoll.push(obj)
+        }
+        return resolve(fabricRoll)
+        } catch(err) {
+        return reject(err)
+        }
+    })
+}
+
+const frGroupByTypeAndColor = (data) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            var json = {
+                number: 0,
+                fabricRoll: []
+            }
+            var unique = [...new Set(data.map(d => {
+                return d.fabricType
+            }))]
+            for (var i = 0; unique[i]; i++) {
+                var obj = {
+                    type: unique[i],
+                    number: 0,
+                    data: []
+                }
+                data.forEach(data_col => {
+                    if(data_col.fabricType === unique[i]) {
+                        obj.data.push(data_col)
+                        obj.number++
+                        json.number++
+                    }
+                })
+                json.fabricRoll.push(obj)
+            }
+            for (let i = 0; i < json.fabricRoll.length; i++) {
+                json.fabricRoll[i].data = await frGroupByColor2(json.fabricRoll[i].data)
+            }
+            json.fabricRoll.sort((a, b) => a.number - b.number)
+            return resolve(json)
+        } catch(err) {
+            return reject(err)
+        }
+    })
+}
+
+const frGroupByColorAndType = (data) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            var json = {
+                number: 0,
+                fabricRoll: []
+            }
+            var unique = [...new Set(data.map(d => {
+                return d.fabricColor
+            }))]
+            for (var i = 0; unique[i]; i++) {
+                var obj = {
+                    color: unique[i],
+                    colorCode: "",
+                    number: 0,
+                    data: []
+                }
+                data.forEach(data_col => {
+                    if(data_col.fabricColor === unique[i]) {
+                        if(!obj.colorCode) {
+                            obj.colorCode = data_col.fabricColorCode
+                        }
+                        obj.data.push(data_col)
+                        obj.number++
+                        json.number++
+                    }
+                })
+                json.fabricRoll.push(obj)
+            }
+            for (let i = 0; i < json.fabricRoll.length; i++) {
+                json.fabricRoll[i].data = await frGroupByType2(json.fabricRoll[i].data)
+            }
+            json.fabricRoll.sort((a, b) => a.number - b.number)
+            return resolve(json)
+        } catch(err) {
+            return reject(err)
+        }
+    })
+  }
+
+const frGroupBySupplier = (data) => {
+    return new Promise((resolve, reject) => {
+        try {
+            let json = {
+                number: 0,
+                data: []
+            }
+            console.log('unique')
+            var unique = [...new Set(data.map(d => {
+                return d.supplier.name
+            }))]
+            console.log(unique)
+            for (var i = 0; unique[i]; i++) {
+                var obj = {
+                    name: unique[i],
+                    number: 0
+                }
+                data.forEach(data_col => {
+                    if(data_col.supplier.name === unique[i]) {
+                        obj.number++
+                        json.number++
+                    }
+                })
+                json.data.push(obj)
+            }
+            console.log('json')
+            console.log(json)
+            return resolve(json)
+        } catch(err) {
+            return reject(err)
+        }
+    })
+}
+app.get('/groupbysupplier', (req, res) => {
+    if(typeof req.query.status !== "undefined") {
+        var data = []
+        db.collection('fabricRoll').where('status', '==', req.query.status).get()
+        .then(async (snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                data.push({
+                    id : doc.id,
+                    idFabric : doc.data().idFabric,
+                    dateAdd : doc.data().dateAdd,
+                    dateUse : doc.data().dateUse,
+                    supplier: doc.data().supplier,
+                    fabricType: doc.data().fabricType,
+                    fabricColor: doc.data().fabricColor,
+                    fabricColorCode: doc.data().fabricColorCode,
+                    printed: doc.data().printed,
+                    status : doc.data().status,
+                    size: doc.data().size,
+                    weight: doc.data().weight
+                })
+            })
+            var new_data = await frGroupBySupplier(data)
+            console.log(new_data)
+            res.status(200).send(new_data)
+        })
+        .catch((err) => {
+            console.log(err)
+            res.status(400).send(err)
+        })
+    } else {
+        var data = []
+        db.collection('fabricRoll').get()
+        .then(async (snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                if(doc.id != 'runNumber') {
+                    data.push({
+                        id : doc.id,
+                        idFabric : doc.data().idFabric,
+                        dateAdd : doc.data().dateAdd,
+                        dateUse : doc.data().dateUse,
+                        supplier: doc.data().supplier,
+                        fabricType: doc.data().fabricType,
+                        fabricColor: doc.data().fabricColor,
+                        fabricColorCode: doc.data().fabricColorCode,
+                        printed: doc.data().printed,
+                        status : doc.data().status,
+                        size: doc.data().size,
+                        weight: doc.data().weight
+                    })
+                }
+            })
+            var new_data = await frGroupBySupplier(data)
+            res.status(200).send(new_data)
+        })
+        .catch((err) => {
+            console.log(err)
+            res.status(400).send(err)
+        })
+    }
+})
+
 app.get('/groupbycolor', (req, res) => {
     var data = []
     if(typeof req.query.status !== "undefined") {
@@ -106,7 +365,202 @@ app.get('/groupbycolor', (req, res) => {
             res.status(400).send(err)
         })
     } else {
-        res.status(400).send('There are no request query')
+        db.collection('fabricRoll').get()
+        .then(async (snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                data.push({
+                    id : doc.id,
+                    idFabric : doc.data().idFabric,
+                    dateAdd : doc.data().dateAdd,
+                    dateUse : doc.data().dateUse,
+                    supplier: doc.data().supplier,
+                    fabricType: doc.data().fabricType,
+                    fabricColor: doc.data().fabricColor,
+                    fabricColorCode: doc.data().fabricColorCode,
+                    printed: doc.data().printed,
+                    status : doc.data().status,
+                    size: doc.data().size,
+                    weight: doc.data().weight
+                })
+            })
+            var new_data = await frGroupByColor(data)
+            res.status(200).send(new_data)
+        })
+        .catch((err) => {
+            console.log(err)
+            res.status(400).send(err)
+        })
+    }
+})
+
+app.get('/groupbycolorandtype', (req, res) => {
+    var data = []
+    if(typeof req.query.status !== "undefined") {
+        db.collection('fabricRoll').where('status', '==', req.query.status).get()
+        .then(async (snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                data.push({
+                    id : doc.id,
+                    idFabric : doc.data().idFabric,
+                    dateAdd : doc.data().dateAdd,
+                    dateUse : doc.data().dateUse,
+                    supplier: doc.data().supplier,
+                    fabricType: doc.data().fabricType,
+                    fabricColor: doc.data().fabricColor,
+                    fabricColorCode: doc.data().fabricColorCode,
+                    printed: doc.data().printed,
+                    status : doc.data().status,
+                    size: doc.data().size,
+                    weight: doc.data().weight
+                })
+            })
+            var new_data = await frGroupByColorAndType(data)
+            res.status(200).send(new_data)
+        })
+        .catch((err) => {
+            console.log(err)
+            res.status(400).send(err)
+        })
+    } else {
+        db.collection('fabricRoll').get()
+        .then(async (snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                data.push({
+                    id : doc.id,
+                    idFabric : doc.data().idFabric,
+                    dateAdd : doc.data().dateAdd,
+                    dateUse : doc.data().dateUse,
+                    supplier: doc.data().supplier,
+                    fabricType: doc.data().fabricType,
+                    fabricColor: doc.data().fabricColor,
+                    fabricColorCode: doc.data().fabricColorCode,
+                    printed: doc.data().printed,
+                    status : doc.data().status,
+                    size: doc.data().size,
+                    weight: doc.data().weight
+                })
+            })
+            var new_data = await frGroupByColorAndType(data)
+            res.status(200).send(new_data)
+        })
+        .catch((err) => {
+            console.log(err)
+            res.status(400).send(err)
+        })
+    }
+})
+
+app.get('/groupbytype', (req, res) => {
+    var data = []
+    if(typeof req.query.status !== "undefined") {
+        db.collection('fabricRoll').where('status', '==', req.query.status).get()
+        .then(async (snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                data.push({
+                    id : doc.id,
+                    idFabric : doc.data().idFabric,
+                    dateAdd : doc.data().dateAdd,
+                    dateUse : doc.data().dateUse,
+                    supplier: doc.data().supplier,
+                    fabricType: doc.data().fabricType,
+                    fabricColor: doc.data().fabricColor,
+                    fabricColorCode: doc.data().fabricColorCode,
+                    printed: doc.data().printed,
+                    status : doc.data().status,
+                    size: doc.data().size,
+                    weight: doc.data().weight
+                })
+            })
+            var new_data = await frGroupByType(data)
+            res.status(200).send(new_data)
+        })
+        .catch((err) => {
+            console.log(err)
+            res.status(400).send(err)
+        })
+    } else {
+        db.collection('fabricRoll').get()
+        .then(async (snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                data.push({
+                    id : doc.id,
+                    idFabric : doc.data().idFabric,
+                    dateAdd : doc.data().dateAdd,
+                    dateUse : doc.data().dateUse,
+                    supplier: doc.data().supplier,
+                    fabricType: doc.data().fabricType,
+                    fabricColor: doc.data().fabricColor,
+                    fabricColorCode: doc.data().fabricColorCode,
+                    printed: doc.data().printed,
+                    status : doc.data().status,
+                    size: doc.data().size,
+                    weight: doc.data().weight
+                })
+            })
+            var new_data = await frGroupByType(data)
+            res.status(200).send(new_data)
+        })
+        .catch((err) => {
+            console.log(err)
+            res.status(400).send(err)
+        })
+    }
+})
+
+app.get('/groupbytypeandcolor', (req, res) => {
+    var data = []
+    if(typeof req.query.status !== "undefined") {
+        db.collection('fabricRoll').where('status', '==', req.query.status).get()
+        .then(async (snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                data.push({
+                    id : doc.id,
+                    idFabric : doc.data().idFabric,
+                    dateAdd : doc.data().dateAdd,
+                    dateUse : doc.data().dateUse,
+                    supplier: doc.data().supplier,
+                    fabricType: doc.data().fabricType,
+                    fabricColor: doc.data().fabricColor,
+                    fabricColorCode: doc.data().fabricColorCode,
+                    printed: doc.data().printed,
+                    status : doc.data().status,
+                    size: doc.data().size,
+                    weight: doc.data().weight
+                })
+            })
+            var new_data = await frGroupByTypeAndColor(data)
+            res.status(200).send(new_data)
+        })
+        .catch((err) => {
+            console.log(err)
+            res.status(400).send(err)
+        })
+    } else {
+        db.collection('fabricRoll').get()
+        .then(async (snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                data.push({
+                    id : doc.id,
+                    idFabric : doc.data().idFabric,
+                    dateAdd : doc.data().dateAdd,
+                    dateUse : doc.data().dateUse,
+                    supplier: doc.data().supplier,
+                    fabricType: doc.data().fabricType,
+                    fabricColor: doc.data().fabricColor,
+                    fabricColorCode: doc.data().fabricColorCode,
+                    printed: doc.data().printed,
+                    status : doc.data().status,
+                    size: doc.data().size,
+                    weight: doc.data().weight
+                })
+            })
+            var new_data = await frGroupByTypeAndColor(data)
+            res.status(200).send(new_data)
+        })
+        .catch((err) => {
+            console.log(err)
+            res.status(400).send(err)
+        })
     }
 })
 

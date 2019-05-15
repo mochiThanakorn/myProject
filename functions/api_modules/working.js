@@ -11,7 +11,211 @@ const isJson = str => {
     return true;
 }
 
-app.get('/',(req, res) => {
+const groupByDateWorking = (data) => {
+  return new Promise((resolve, reject) => {
+    try {
+      let unique = [...new Set(data.map(d => {
+        return d.date
+      }))]
+      let newData = {
+        number: 0,
+        data: []
+      }
+      console.table(unique)
+      unique.forEach((uniqueData) => {
+        let tmpData = {
+          date: uniqueData,
+          number: 0
+        }
+        data.forEach((allData) => {
+          if(uniqueData == allData.date) {
+            tmpData.number += allData.fabricRolls.length
+            newData.number += allData.fabricRolls.length
+          }
+        })
+        newData.data.push(tmpData)
+      })
+      return resolve(newData)
+    } catch(err) {
+      return reject(err)
+    } 
+  })
+}
+
+const groupByMonthAndYearWorking = (data, month, year) => {
+  return new Promise((resolve, reject) => {
+    try {
+      let unique = [...new Set(data.map(d => {
+        return d.date
+      }))]
+      let newData = {
+        number: 0,
+        data: []
+      }
+      console.table(unique)
+      unique.forEach((uniqueData) => {
+        let tmpData = {
+          date: uniqueData,
+          number: 0
+        }
+        data.forEach((allData) => {
+          if(uniqueData == allData.date) {
+            tmpData.number += allData.fabricRolls.length
+            newData.number += allData.fabricRolls.length
+          }
+        })
+        newData.data.push(tmpData)
+      })
+      let newData2 = {
+        number: 0,
+        data: []
+      }
+      newData.data.forEach((d) => {
+        let date = d.date.split('/')
+        let m = date[1]*1
+        let y = date[2]*1
+        if(m == month && y == year) {
+          newData2.data.push(d)
+          newData2.number += d.number
+        }
+      })
+      return resolve(newData2)
+    } catch(err) {
+      return reject(err)
+    }
+  })
+}
+
+const groupByYearWorking = (data, year) => {
+  return new Promise((resolve, reject) => {
+    try {
+      let newData = {
+        number: 0,
+        data: []
+      }
+      for(let i = 1; i <= 12; i++) {
+        let tmpData = {
+          month: i,
+          year: year,
+          number: 0
+        }
+        data.forEach((d) => {
+          let date = d.date.split('/')
+          let m = date[1]*1
+          let y = date[2]*1
+          if(m == i && y == year) {
+            tmpData.number += d.fabricRolls.length
+            newData.number += d.fabricRolls.length
+          }
+        })
+        newData.data.push(tmpData)
+      }
+      return resolve(newData)
+    } catch(err) {
+      return reject(err)
+    }
+  }) 
+}
+
+
+app.get('/statistic/fabricrolls', (req, res) => {
+  if(typeof req.query.date !== "undefined") {
+    let data = []
+    db.collection('working').where("date",'==',req.query.date).get()
+    .then(async (querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        data.push({
+          id : doc.id,
+          date: doc.data().date,
+          round: doc.data().round,
+          state: doc.data().state,
+          empCut: doc.data().empCut,
+          empSpread: doc.data().empSpread,
+          tableNum: doc.data().tableNum,
+          markNum: doc.data().markNum,
+          fabricRolls: doc.data().fabricRolls
+        })
+      })
+      let new_data = await groupByDateWorking(data)
+      res.status(200).send(new_data)
+    })
+    .catch((err) => {
+        res.status(401).send('Error getting documents', err)
+    })
+  } else if(typeof req.query.month !== "undefined" && typeof req.query.year !== "undefined") {
+    let data = []
+    db.collection('working').get()
+    .then(async (querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        data.push({
+          id : doc.id,
+          date: doc.data().date,
+          round: doc.data().round,
+          state: doc.data().state,
+          empCut: doc.data().empCut,
+          empSpread: doc.data().empSpread,
+          tableNum: doc.data().tableNum,
+          markNum: doc.data().markNum,
+          fabricRolls: doc.data().fabricRolls
+        })
+      })
+      let new_data = await groupByMonthAndYearWorking(data, req.query.month, req.query.year)
+      res.status(200).send(new_data)
+    })
+    .catch((err) => {
+        res.status(401).send('Error getting documents', err)
+    })
+  } else if(typeof req.query.year !== "undefined") { //by month of year
+    let data = []
+    db.collection('working').get()
+    .then(async (querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        data.push({
+          id : doc.id,
+          date: doc.data().date,
+          round: doc.data().round,
+          state: doc.data().state,
+          empCut: doc.data().empCut,
+          empSpread: doc.data().empSpread,
+          tableNum: doc.data().tableNum,
+          markNum: doc.data().markNum,
+          fabricRolls: doc.data().fabricRolls
+        })
+      })
+      let new_data = await groupByYearWorking(data, req.query.year)
+      res.status(200).send(new_data)
+    })
+    .catch((err) => {
+      res.status(401).send('Error getting documents', err)
+    })
+  } else {
+    var data = []
+      db.collection('working').get()
+      .then(async (snapshot) => {
+          snapshot.docs.forEach((doc) => {
+            //round: data.round,
+              data.push({
+                  id : doc.id,
+                  date: doc.data().date,
+                  round: doc.data().round,
+                  state: doc.data().state,
+                  empCut: doc.data().empCut,
+                  empSpread: doc.data().empSpread,
+                  tableNum: doc.data().tableNum,
+                  markNum: doc.data().markNum,
+                  fabricRolls: doc.data().fabricRolls
+              })
+          })
+          let new_data = await groupByDateWorking(data)
+          res.status(200).send(new_data);
+      })
+      .catch((err) => {
+          res.status(401).json({error:err});
+      })
+  }
+})
+
+app.get('/', (req, res) => {
     if(typeof req.query.id !== "undefined") {
         db.collection('working').doc(req.query.id).get()
         .then((doc) => {

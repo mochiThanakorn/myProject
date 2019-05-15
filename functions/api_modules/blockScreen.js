@@ -206,7 +206,7 @@ app.get('/', async (req, res) => {
         })
     }
 })
-
+/* 
 app.post('/', async (req, res) => {
     var data
     if(typeof req.body === 'object') {
@@ -230,6 +230,40 @@ app.post('/', async (req, res) => {
         date : data.date
     }).then(() => {
         res.status(200).send(idBlockScreen)
+        return true
+    }).catch((err) => {
+        res.status(400).send('Error')
+        console.log(err)
+    })
+})
+*/
+app.post('/', async (req, res) => {
+    var data
+    if(typeof req.body === 'object') {
+        data = req.body
+    } else if(isJsonString(req.body)) {
+        data = JSON.parse(req.body)
+    } else {
+        res.status(400).send("Error : Not json format")
+    }
+
+    let chk = validateBlockScreenKey(data)
+    if(!chk.status)
+        res.status(400).send(chk.msg)
+
+    var idBlockScreen = await getIdBlockScreen()
+
+    var blockScreenRef = db.collection('blockScreen').doc()
+    blockScreenRef.set({
+        idBlockScreen: idBlockScreen,
+        name: data.name,
+        owner: data.owner,
+        date : data.date
+    }).then(() => {
+        res.status(200).json({
+            id: blockScreenRef.id,
+            idBlockScreen: idBlockScreen    
+        })
         return true
     }).catch((err) => {
         res.status(400).send('Error')

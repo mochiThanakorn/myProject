@@ -113,8 +113,163 @@ const validateOrderKey = (data) => {
         }
     }
 }
+const groupByDateOrder = (data) => {
+    return new Promise((resolve, reject) => {
+        try {
+            let unique = [...new Set(data.map(d => {
+                return d.deliveryDate
+              }))]
+              let newData = {
+                number: 0,
+                amount: 0,
+                data: []
+              }
+              console.table(unique)
+              unique.forEach((uniqueData) => {
+                let tmpData = {
+                  date: uniqueData,
+                  number: 0,
+                  amount: 0,
+                  orders: []
+                }
+                data.forEach((allData) => {
+                  if(uniqueData == allData.deliveryDate) {
+                    tmpData.number += 1
+                    tmpData.amount += allData.totalPrice*1
+                    tmpData.orders.push(allData)
+                    newData.number += 1
+                    newData.amount += allData.totalPrice*1
+                  }
+                })
+                newData.data.push(tmpData)
+               })
+           return resolve(newData)
+        } catch(err) {
+          return reject(err)
+        }
+      })
+}
+const groupByMonthAndYearOrder = (data, month, year) => {
+    return new Promise((resolve, reject) => {
+      try {
+        let unique = [...new Set(data.map(d => {
+            return d.deliveryDate
+          }))]
+          let newData = {
+            number: 0,
+            amount: 0,
+            data: []
+          }
+          console.table(unique)
+          unique.forEach((uniqueData) => {
+            let tmpData = {
+              date: uniqueData,
+              number: 0,
+              amount: 0,
+              orders: []
+            }
+            data.forEach((allData) => {
+              if(uniqueData == allData.deliveryDate) {
+                tmpData.number += 1
+                tmpData.amount += allData.totalPrice*1
+                tmpData.orders.push(allData)
+                newData.number += 1
+                newData.amount += allData.totalPrice*1
+              }
+            })
+            newData.data.push(tmpData)
+           })
+        let newData2 = {
+            number: 0,
+            amount: 0,
+            data: []
+        }
+        newData.data.forEach((d) => {
+          let date = d.date.split('/')
+          let m = date[1]*1
+          let y = date[2]*1
+          if(m == month && y == year) {
+                newData2.number += d.number
+                newData2.amount += d.amount
+                newData2.data.push(d)
+          }
+        })
+        return resolve(newData2)
+      } catch(err) {
+        return reject(err)
+      }
+    })
+  }
 
+app.get('/statistic', (req, res) => {
+    if(typeof req.query.month !== "undefined" && typeof req.query.year !== "undefined") {
+        var data = []
+        db.collection('order').orderBy("idOrder", "desc").get()
+        .then(async (snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                if(doc.id !== 'id') {          
+                    data.push({
+                        id : doc.id,
+                        idOrder: doc.data().idOrder,
+                        creator: doc.data().creator,
+                        createDate: doc.data().createDate,
+                        customer : doc.data().customer, 
+                        blockScreen: doc.data().blockScreen,
+                        detail: doc.data().detail,
+                        number: doc.data().number,
+                        pricePerPiece: doc.data().pricePerPiece,
+                        totalPrice: doc.data().totalPrice,
+                        deposit: doc.data().deposit,
+                        deliveryDate: doc.data().deliveryDate,
+                        note: doc.data().note,
+                        shippingCost: doc.data().shippingCost,
+                        status: doc.data().status
+                    })
+                }
+            })
+            let new_data = await groupByMonthAndYearOrder(data, req.query.month, req.query.year)
+            res.status(200).send(new_data)
+        })
+        .catch((err) => {
+            console.log(err)
+            res.status(400).json({msg : err})
+        })
+    }/* else if(typeof req.query.year !== "undefined") {
 
+    }*/ else {
+        var data = []
+        db.collection('order').orderBy("idOrder", "desc").get()
+        .then(async (snapshot) => {
+            snapshot.docs.forEach((doc) => {
+                if(doc.id !== 'id') {          
+                    data.push({
+                        id : doc.id,
+                        idOrder: doc.data().idOrder,
+                        creator: doc.data().creator,
+                        createDate: doc.data().createDate,
+                        customer : doc.data().customer, 
+                        blockScreen: doc.data().blockScreen,
+                        detail: doc.data().detail,
+                        number: doc.data().number,
+                        pricePerPiece: doc.data().pricePerPiece,
+                        totalPrice: doc.data().totalPrice,
+                        deposit: doc.data().deposit,
+                        deliveryDate: doc.data().deliveryDate,
+                        note: doc.data().note,
+                        shippingCost: doc.data().shippingCost,
+                        status: doc.data().status
+                    })
+                }
+            })
+            let new_data = await groupByDateOrder(data)
+            res.status(200).send(new_data)
+        })
+        .catch((err) => {
+            console.log(err)
+            res.status(400).json({msg : err})
+        })
+    }
+})
 
 app.get('/id', async (req, res) => {
     try {
