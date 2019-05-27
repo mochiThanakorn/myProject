@@ -242,7 +242,7 @@ app.get('/', (req, res) => {
     }
     else {
       var data = []
-      db.collection('working').orderBy("date", "desc").orderBy("tableNum", "desc").orderBy("round", "desc").get()
+      db.collection('working').orderBy("tableNum", "desc").orderBy("round", "desc").get()
       .then((snapshot) => {
           snapshot.docs.forEach((doc) => {
             //round: data.round,
@@ -258,10 +258,15 @@ app.get('/', (req, res) => {
                   fabricRolls: doc.data().fabricRolls
               })
           })
-          res.status(200).send(data);
+          let new_data = data.sort((a, b) => { 
+            let first = b.date.split('/')
+            let last = a.date.split('/')
+            return Date.UTC(first[2], first[1], first[0]) - Date.UTC(last[2], last[1], last[0]) || a.tableNum - b.tableNum || b.round - a.round
+          })
+          res.status(200).send(new_data)
       })
       .catch((err) => {
-          res.status(401).json({error:err});
+          res.status(401).json({error:err})
       })
   }
 })
