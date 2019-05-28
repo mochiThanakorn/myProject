@@ -11,6 +11,31 @@ const isJson = str => {
     return true;
 }
 
+app.use((req, res, next) => {
+  const userToken = req.header('userToken')
+  if(typeof userToken !== 'undefined' && userToken !== '') {
+      db.collection('employees').where('user.userToken', '==', userToken).get()
+      .then((snapshot) => {
+          if (snapshot.empty) {
+              res.status(400).json({error: 'userToken not found in db.'})
+          } else {
+              snapshot.docs.forEach((doc) => {
+                      if(doc.data().user.authority !== 'undefined' && doc.data().user.authority.manageFabricUse) {
+                          next()
+                      } else {
+                          res.status(400).json({error: 'User can\'t use fabricUse API.'})
+                      }
+              })
+          }
+      })
+      .catch((err) => {
+          res.status(400).json({error: err})
+      })
+  } else {
+      res.status(400).json({error: 'There are not userToken.'})
+  }
+})
+
 const groupByDateWorking = (data) => {
   return new Promise((resolve, reject) => {
     try {

@@ -11,7 +11,7 @@ const isJson = str => {
     return true;
 }
 
-/*app.use((req, res, next) => {
+app.use((req, res, next) => {
     const userToken = req.header('userToken')
     if(typeof userToken !== 'undefined' && userToken !== '') {
         db.collection('employees').where('user.userToken', '==', userToken).get()
@@ -34,7 +34,7 @@ const isJson = str => {
     } else {
         res.status(400).json({error: 'There are not userToken.'})
     }
-})*/
+})
 
 const checkAuthority = (req, res, next) => {
   const userToken = req.header('userToken')
