@@ -220,11 +220,15 @@ app.get('/', async (req, res) => {
                         idBlockScreen: doc.data().idBlockScreen,
                         name: doc.data().name,
                         owner: doc.data().owner,
-                        date : doc.data().date
+                        date: doc.data().date,
+                        status: doc.data().status
                     })
                 }
             })
-            res.status(200).send(data)
+            console.log(data)
+            let filterData = data.filter(item => item.status == "enable")
+            console.log(filterData)
+            res.status(200).send(filterData)
         })
         .catch((err) => {
             console.log(err)
@@ -232,37 +236,7 @@ app.get('/', async (req, res) => {
         })
     }
 })
-/* 
-app.post('/', async (req, res) => {
-    var data
-    if(typeof req.body === 'object') {
-        data = req.body
-    } else if(isJsonString(req.body)) {
-        data = JSON.parse(req.body)
-    } else {
-        res.status(400).send("Error : Not json format")
-    }
 
-    let chk = validateBlockScreenKey(data)
-    if(!chk.status)
-        res.status(400).send(chk.msg)
-
-    var idBlockScreen = await getIdBlockScreen()
-
-    db.collection('blockScreen').doc().set({
-        idBlockScreen: idBlockScreen,
-        name: data.name,
-        owner: data.owner,
-        date : data.date
-    }).then(() => {
-        res.status(200).send(idBlockScreen)
-        return true
-    }).catch((err) => {
-        res.status(400).send('Error')
-        console.log(err)
-    })
-})
-*/
 app.post('/', async (req, res) => {
     var data
     if(typeof req.body === 'object') {
@@ -342,5 +316,58 @@ app.delete('/',(req, res) => {
     })
 })
 
+app.put('/enable', (req, res) => {
+    if(typeof req.query.id === "undefined") {
+        res.send(400).send("There are no id!")
+    }
+    var docRef = db.collection("blockScreen").doc(req.query.id);
+    return db.runTransaction((transaction) => {
+        return transaction.get(docRef).then((doc) => {
+            if (!doc.exists) {
+                res.status(400).send("Document does not exist!")
+            }
+            transaction.update(docRef, {
+                status: 'enable'
+            })
+        })
+    }).then(() => {
+        res.status(200).send("Success")
+    }).catch((err) => {
+        res.status(400).send(err)
+    })
+})
+
+app.put('/disable', (req, res) => {
+    if(typeof req.query.id === "undefined") {
+        res.send(400).send("There are no id!")
+    }
+    var docRef = db.collection("blockScreen").doc(req.query.id);
+    return db.runTransaction((transaction) => {
+        return transaction.get(docRef).then((doc) => {
+            if (!doc.exists) {
+                res.status(400).send("Document does not exist!")
+            }
+            transaction.update(docRef, {
+                status: 'disable'
+            })
+        })
+    }).then(() => {
+        res.status(200).send("Success")
+    }).catch((err) => {
+        res.status(400).send(err)
+    })
+})
+
+app.delete('/',(req, res) => {
+    if(typeof req.query.id === "undefined") {
+        res.send(400).send("There are no id")
+    }
+    db.collection("blockScreen").doc(req.query.id).delete()
+    .then(() => {
+        res.status(200).send("Success : Delete")
+    }).catch((err) => {
+        res.status(400).send(err)
+    })
+})
 
 module.exports = app
