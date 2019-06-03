@@ -30,6 +30,8 @@ app.use((req, res, next) => {
                 snapshot.docs.forEach((doc) => {
                         if(doc.data().user.authority.manageFabrics !== 'undefined' && doc.data().user.authority.manageFabrics) {
                             next()
+                        } else if(req.method === "GET") {
+                            next()
                         } else {
                             res.status(400).json({error: 'User can\'t use fabricRolls API.'})
                         }

@@ -400,39 +400,7 @@ app.put('/idbag', (req, res) => {
     res.status(400).send(err)
   })
 })
-/*const IsUseOrScanFabricRolls = (id) => {
-  console.log('IsUseOrScanFabricRolls')
-  return new Promise ((resolve, reject) => {
-    var sfDocRef = db.collection("fabricRoll").doc(id);
-    db.runTransaction((transaction) => {
-        transaction.get(sfDocRef).then((sfDoc) => {
-            if (!sfDoc.exists) {
-              resolve({err: "Document does not exist!"})
-            }
-            if (sfDoc.data().status == 'scan') {
-              resolve({
-                status: 1,
-                msg: 'This fabric already scan.'
-              })
-            } else if (sfDoc.data().status == 'use') {
-              resolve({
-                status: 2,
-                msg: 'This fabric already use.'
-              })
 
-            } else {
-              transaction.update(sfDocRef, {
-                  status : 'scan'
-              })
-            }
-        })
-    }).then(() => {
-      resolve({msg:"Update status fabric roll to scan successful."})
-    }).catch((err) => {
-      reject(err)
-    })
-  })
-}*/
 const test1 = id => {
   var sfDocRef = db.collection("fabricRoll").doc(id);
   return db.runTransaction(function(transaction) {
@@ -477,45 +445,6 @@ const IsUseOrScanFabricRolls = async (id) => {
     console.log(err)
     return false
   }
-
-
-
-  /*console.log('function start 1')
-  return new Promise ((resolve, reject) => {
-    var sfDocRef = db.collection("fabricRoll").doc(id);
-    db.runTransaction((transaction) => {
-      console.log('go')
-        await transaction.get(sfDocRef).then((sfDoc) => {
-          console.log('hello')
-            if (!sfDoc.exists) {
-              console.log('There are no data.')
-              resolve('Document does not exist!')
-            }
-            if (sfDoc.data().status == 'scan') {
-              console.log('This fabric already scan.')
-              resolve('This fabric already scan.')
-            } else if (sfDoc.data().status == 'use') {
-              console.log('This fabric already scan.')
-              resolve('This fabric already scan.')
-            }
-              console.log('transaction.update')
-              transaction.update(sfDocRef, {
-                  status : 'scan'
-              })
-              resolve(true)
-        }).catch((err) => {
-          console.log(err)
-          reject(err)
-        })
-        resolve('olo')
-    }).then(() => {
-      console.log('Update status fabric roll to scan successful.')
-      resolve('Update status fabric roll to scan successful.')
-    }).catch((err) => {
-      console.log(err)
-      reject(err)
-    })
-  })*/
 }
 app.put('/test',async (req, res) => {
 
@@ -580,7 +509,76 @@ const updateStatusFabricRoll = (id) => {
   })
   return transaction
 }
+/*
+app.post('/', async (req, res) => {
+  console.log("post working")
+    if(typeof req.body == 'object') {
+        var data = req.body
+    } else if(isJson(req.body)) {
+        var data = JSON.parse(req.body)
+    } else {
+        res.status(400).json({msg:"not json format"})
+    }
+    var error_msg = "Error no field ["
+    var error_chk = false
+    if(!data.date) {
+      error_msg += "date,"
+      error_chk = true
+    }
+    if(!data.empCut) {
+        error_msg += "empCut,"
+        error_chk = true
+    }
+    if(!data.empSpread) {
+        error_msg += "empSpread,"
+        error_chk = true
+    }
+    if(!data.tableNum) {
+        error_msg += "tableNum,"
+        error_chk = true
+    }
+    if(!data.markNum) {
+        error_msg += "markNum,"
+        error_chk = true
+    }
+    if(error_chk) {
+        error_msg += "]"
+        res.status(400).json({msg: error_msg})
+    }
 
+    let chk = true
+    db.collectionGroup('working')
+    .where('tableNum', '==', data.tableNum)
+    .where('date', '==', data.date)
+    .get().then(async (querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+          if(doc.data().state != 5) {
+            chk = false
+          }
+          console.log(doc.id, ' => ', doc.data())
+        })
+        if(chk) {
+          var round = await getLastRound(data.date, data.tableNum)
+          let doc = db.collection('working').doc()
+          doc.set({
+              date: data.date,
+              state: 1,
+              round: round,
+              empCut: data.empCut,
+              empSpread: data.empSpread,
+              tableNum: data.tableNum,
+              markNum: data.markNum,
+              fabricRolls: []
+          })
+          .then(() => {
+            res.status(200).send(doc.id)
+          })
+        } else {
+          res.status(400).json({msg: "Old work is not finished."})
+        }
+    })
+})
+*/
 const addFabricRollToWorking = (idWorking, fabricRoll) => {
   var docRef = db.collection('working').doc(idWorking)
   var transaction = db.runTransaction(t => {
@@ -815,57 +813,71 @@ const getLastRound = (date, tableNum) => {
 
 //finish
 app.post('/',async (req, res) => {
-    if(typeof req.body == 'object') {
-        var data = req.body
-    } else if(isJson(req.body)) {
-        var data = JSON.parse(req.body)
-    } else {
-        res.status(400).json({msg:"not json format"})
-    }
-    var error_msg = "Error no field ["
-    var error_chk = false
-    if(!data.date) {
-      error_msg += "date,"
+  console.log("post working")
+  if(typeof req.body == 'object') {
+      var data = req.body
+  } else if(isJson(req.body)) {
+      var data = JSON.parse(req.body)
+  } else {
+      res.status(400).json({msg:"not json format"})
+  }
+  var error_msg = "Error no field ["
+  var error_chk = false
+  if(!data.date) {
+    error_msg += "date,"
+    error_chk = true
+  }
+  if(!data.empCut) {
+      error_msg += "empCut,"
       error_chk = true
-    }
-    if(!data.empCut) {
-        error_msg += "empCut,"
-        error_chk = true
-    }
-    if(!data.empSpread) {
-        error_msg += "empSpread,"
-        error_chk = true
-    }
-    if(!data.tableNum) {
-        error_msg += "tableNum,"
-        error_chk = true
-    }
-    if(!data.markNum) {
-        error_msg += "markNum,"
-        error_chk = true
-    }
-    if(error_chk) {
-        error_msg += "]"
-        res.status(400).json({msg: error_msg})
-    }
-    //console.log(await getLastRound(data.date, data.tableNum))
-    var round = await getLastRound(data.date, data.tableNum)
-    console.log("ROUND = "+round)
-    let doc = db.collection('working').doc()
-    doc.set({
-        date: data.date,
-        state: 1,
-        round: round,
-        empCut: data.empCut,
-        empSpread: data.empSpread,
-        tableNum: data.tableNum,
-        markNum: data.markNum,
-        fabricRolls: []
-    })
-    .then(() => {
-      console.log(doc.id)
-      res.status(200).send(doc.id)
-    })
+  }
+  if(!data.empSpread) {
+      error_msg += "empSpread,"
+      error_chk = true
+  }
+  if(!data.tableNum) {
+      error_msg += "tableNum,"
+      error_chk = true
+  }
+  if(!data.markNum) {
+      error_msg += "markNum,"
+      error_chk = true
+  }
+  if(error_chk) {
+      error_msg += "]"
+      res.status(400).json({msg: error_msg})
+  }
+
+  let chk = true
+  db.collection('working')
+  .where('tableNum', '==', data.tableNum)
+  .where('date', '==', data.date)
+  .get().then(async (querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        if(doc.data().state != 5) {
+          chk = false
+        }
+      })
+      if(chk) {
+          var round = await getLastRound(data.date, data.tableNum)
+          let doc = db.collection('working').doc()
+          doc.set({
+              date: data.date,
+              state: 1,
+              round: round,
+              empCut: data.empCut,
+              empSpread: data.empSpread,
+              tableNum: data.tableNum,
+              markNum: data.markNum,
+              fabricRolls: []
+          })
+        .then(() => {
+          res.status(200).send(doc.id)
+        })
+      } else {
+        res.status(400).json({msg: "Old work is not finished."})
+      }
+  })
 })
 
 const resetFabricRoll = (id) => {

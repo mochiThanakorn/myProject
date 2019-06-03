@@ -11,7 +11,7 @@ const isJson = str => {
     return true;
 }
 
-app.use((req, res, next) => {
+/*app.use((req, res, next) => {
     const userToken = req.header('userToken')
     if(typeof userToken !== 'undefined' && userToken !== '') {
         db.collection('employees').where('user.userToken', '==', userToken).get()
@@ -25,6 +25,43 @@ app.use((req, res, next) => {
                         } else {
                             res.status(400).json({error: 'User can\'t use fabricRolls API.'})
                         }
+                })
+            }
+        })
+        .catch((err) => {
+            res.status(400).json({error: err})
+        })
+    } else {
+        res.status(400).json({error: 'There are not userToken.'})
+    }
+})*/
+
+
+
+app.use("/", (req, res, next) => {
+    const userToken = req.header('userToken')
+    if(typeof userToken !== 'undefined' && userToken !== '') {
+        db.collection('employees').where('user.userToken', '==', userToken).get()
+        .then((snapshot) => {
+            if (snapshot.empty) {
+                res.status(400).json({error: 'userToken not found in db.'})
+            } else {
+                snapshot.docs.forEach((doc) => {
+                    if(doc.data().user.authority !== 'undefined') {
+                        if(doc.data().user.authority.manageSuppliers) {
+                            next()
+                        } else if(doc.data().user.authority.manageFabrics && req.method === "GET") {
+                            next()
+                        } else {
+                            res.status(400).json({
+                                error: 'User can\'t use Supplier API.'
+                            })
+                        }
+                    } else {
+                        res.status(400).json({
+                            error: 'Authority is "undefined"'
+                        })
+                    }                                            
                 })
             }
         })
@@ -60,6 +97,10 @@ const checkAuthority = (req, res, next) => {
       res.status(400).json({error: 'There are not userToken.'})
   }
 }
+
+app.get("/hello", (req, res) => {
+    res.status(200).send("ok")
+})
 
 app.get('/', (req, res) => {
     var employeeArr = []

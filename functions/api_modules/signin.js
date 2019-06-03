@@ -25,7 +25,12 @@ app.post('/',(req, res) => {
                     id: doc.id,
                     name: doc.data().name,
                     surname: doc.data().surname,
-                    //typeAccount:doc.data().user.typeAccount,
+                    address: doc.data().address,
+                    birthday: doc.data().birthday,
+                    firstDayOfWork: doc.data().firstDayOfWork,
+                    phoneNumber: doc.data().phoneNumber,
+                    position: doc.data().position,
+                    sex: doc.data().sex,
                     userToken: doc.data().user.userToken,
                     username: doc.data().user.username,
                     authority: doc.data().user.authority

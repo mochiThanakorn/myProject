@@ -24,7 +24,7 @@ app.get('/test',(req, res) => {
 })
 
 
-app.use((req, res, next) => {
+app.use("/", (req, res, next) => {
     const userToken = req.header('userToken')
     if(typeof userToken !== 'undefined' && userToken !== '') {
         db.collection('employees').where('user.userToken', '==', userToken).get()
@@ -33,21 +33,83 @@ app.use((req, res, next) => {
                 res.status(400).json({error: 'userToken not found in db.'})
             } else {
                 snapshot.docs.forEach((doc) => {
-                    if(doc.data().user.authority !== 'undefined' && doc.data().user.authority.manageEmployees) {
-                        next()
+                    if(doc.data().user.authority !== 'undefined') {
+                        if(doc.data().user.authority.manageEmployees) {
+                            next()
+                            console.log("doc.data().user.authority.manageEmployees = "+doc.data().user.authority.manageEmployees)
+                        } else if((doc.data().user.authority.manageUsers || doc.data().user.authority.manageFabricUse) && req.method === "GET") {
+                            next()
+                            console.log("doc.data().user.authority.manageUsers = "+doc.data().user.authority.manageUsers+"doc.data().user.authority.manageFabricUse = "+doc.data().user.authority.manageFabricUse)
+                        } else if(req.path == "/chgpwd") {
+                            console.log("req.path = "+req.path)
+                            next()
+                        } else {
+                            res.status(400).json({
+                                error: 'User can\'t use Employee API.'
+                            })
+                        }
                     } else {
-                        res.status(400).json({error: 'User can\'t use fabricRolls API.'})
-                    }             
-                }) 
+                        res.status(400).json({
+                            error: 'Authority is "undefined"'
+                        })
+                    }                                            
+                })
             }
-                         
         })
         .catch((err) => {
             res.status(400).json({error: err})
         })
     } else {
         res.status(400).json({error: 'There are not userToken.'})
-    }      
+    }
+})
+
+
+app.put('/chgpwd', (req, res) => {
+    console.log("/chgpwd")
+    if(typeof req.query.id !== "undefined") {
+        if(typeof req.body == 'object') {
+            var data = req.body
+        } else if(isJson(req.body)) {
+            var data = JSON.parse(req.body)
+        } else {
+            res.status(400).json({msg:"not json format"})
+        }
+        var error_msg = "Error no field ["
+        var error_chk = false
+        if(!data.password) {
+            error_msg += "password"
+            error_chk = true
+        }
+        if(error_chk) {
+            error_msg += "]"
+            res.status(400).json({msg: error_msg})
+        }
+        var sfDocRef = db.collection("employees").doc(req.query.id)
+        return db.runTransaction(function(transaction) {
+            return transaction.get(sfDocRef).then((sfDoc) => {
+                if (!sfDoc.exists) {
+                    res.status(404).json({error : "Document does not exist!"})
+                }
+                if(req.header('userToken') === sfDoc.data().user.userToken) {
+                    let user = sfDoc.data().user
+                    user.password = data.password
+                    transaction.update(sfDocRef, {
+                        user : user
+                    })
+                } else {
+                    res.status(400).json({error : "Permission denied!"})
+                }            
+            })
+        }).then(function() {
+            res.status(200).send("Transaction successfully committed!")
+        }).catch(function(errorMsg) {
+            res.status(400).json({error : errorMsg})
+        })
+    }
+    else {
+        res.send(400).send("not found id")
+    }
 })
 
 //get employee

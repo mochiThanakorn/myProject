@@ -2,6 +2,41 @@ const express = require('express');
 const app = express();
 const db = require('./db_connect');
 
+app.use("/", (req, res, next) => {
+    const userToken = req.header('userToken')
+    if(typeof userToken !== 'undefined' && userToken !== '') {
+        db.collection('employees').where('user.userToken', '==', userToken).get()
+        .then((snapshot) => {
+            if (snapshot.empty) {
+                res.status(400).json({error: 'userToken not found in db.'})
+            } else {
+                snapshot.docs.forEach((doc) => {
+                    if(doc.data().user.authority !== 'undefined') {
+                        if(doc.data().user.authority.manageEmployees) {
+                            next()
+                        } else if((doc.data().user.authority.manageUsers || doc.data().user.authority.manageFabricUse) && req.method === "GET") {
+                            next()
+                        } else {
+                            res.status(400).json({
+                                error: 'User can\'t use Employee API.'
+                            })
+                        }
+                    } else {
+                        res.status(400).json({
+                            error: 'Authority is "undefined"'
+                        })
+                    }                                            
+                })
+            }
+        })
+        .catch((err) => {
+            res.status(400).json({error: err})
+        })
+    } else {
+        res.status(400).json({error: 'There are not userToken.'})
+    }
+})
+
 //functions check is a valid json
 const isJson = str => {
     try {
@@ -130,20 +165,7 @@ app.get('/isuser', (req,res) => {
         res.status(401).json({msg : err});
     })   
 })
-/*const test = async (id) => {
-    var empDoc = db.collection('employee').doc(id)
-            var emp = await empDoc.get()
-            
-            //.then((emp) => {
-                if (emp.exists) {
-                    console.log("emp.id = ",emp.id)          
-                    data.push(emp.id)
-                    console.log(data)             
-                } 
-                else {
-                    console.log("no emp = ")
-                }    
-}*/
+
 app.get('/isnotuser', (req,res) => {
     console.log("employee/isnotuser")
     var data = []
@@ -188,35 +210,6 @@ app.get('/isnotuser', (req,res) => {
     })   
 })
 
-/*app.get('/isuser',(req,res) => {
-    var data = []
-    db.collection('employee').orderBy("name").orderBy("surname").get()
-        .then((snapshot) => {
-            snapshot.docs.forEach((doc) => {
-                console.log("search user 1 = ",doc.id)
-                db.collection('users').where("idEmployee","==",doc.id).get()
-                .then((user) => {
-                    console.log("search user 2 = ",doc.id)
-                    if (user.exists) {
-                        console.log("have user",user)
-                        data.push(doc)
-                        console.log(data)
-                    } else {
-                        console.log("don't have user",user)
-                    }
-                })
-                .catch((err) => {
-                    res.status(401).send('Error getting documents', err)
-                })
-            });
-            res.status(200).send(data);
-        })
-        .catch((err) => {
-            console.log("Error to get all employees.")
-            res.status(401).json({msg : err});
-        });
-})*/
-
 app.get('/',(req, res) => {
     var employeeArr = [];
     if(typeof req.query.id !== "undefined") {
@@ -238,9 +231,9 @@ app.get('/',(req, res) => {
                 res.json({msg:"No such document!"});
             }
         })
-    .catch((err) => {
-        res.status(401).json({msg:'Error getting documents'+err});
-    });
+        .catch((err) => {
+            res.status(401).json({msg:'Error getting documents'+err});
+        })
     }
     else if(typeof req.query.name !== "undefined") {
         db.collection('employee').where('name', '==', req.query.name).get()
