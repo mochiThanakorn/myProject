@@ -114,7 +114,7 @@ app.get('/',(req, res) => {
                     brandName : doc.data().brandName,
                     address : doc.data().address,
                     phoneNumber : doc.data().phoneNumber,
-                    blockScreen : doc.data().blockScreen,
+                    //blockScreen : doc.data().blockScreen,
                     note : doc.data().note
                 })
             } else {
@@ -138,7 +138,7 @@ app.get('/',(req, res) => {
                     brandName : doc.data().brandName,
                     address : doc.data().address,
                     phoneNumber : doc.data().phoneNumber,
-                    blockScreen : doc.data().blockScreen,
+                    //blockScreen : doc.data().blockScreen,
                     note : doc.data().note
                 })
             });
@@ -161,7 +161,7 @@ app.get('/',(req, res) => {
                     brandName : doc.data().brandName,
                     address : doc.data().address,
                     phoneNumber : doc.data().phoneNumber,
-                    blockScreen : doc.data().blockScreen,
+                    //blockScreen : doc.data().blockScreen,
                     note : doc.data().note
                 })
             });
@@ -239,7 +239,7 @@ app.put('/',(req, res) => {
                     brandName : data.brandName,
                     address : data.address,
                     phoneNumber : data.phoneNumber,
-                    blockScreen : data.blockScreen,
+                    //blockScreen : data.blockScreen,
                     note : data.note
                 });
             });
@@ -296,9 +296,9 @@ app.post('/',(req, res) => {
         error_msg += "note,"
         error_chk = true
     }
-    if(!data.blockScreen) {
+    /*if(!data.blockScreen) {
         data.blockScreen = {}
-    }
+    }*/
     if(error_chk) {
         error_msg += "]"
         res.status(400).json({msg:error_msg})
@@ -312,7 +312,7 @@ app.post('/',(req, res) => {
         brandName : data.brandName,
         address : data.address,
         phoneNumber : data.phoneNumber,
-        blockScreen : data.blockScreen,
+        //blockScreen : data.blockScreen,
         note : data.note
     })
     res.status(200).send('Add complete');

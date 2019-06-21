@@ -513,7 +513,6 @@ app.put('/', (req, res) => {
     if(typeof req.query.id === "undefined") {
         res.send(400).send("There are no id")
     }
-    
     var data
     if(typeof req.body === 'object') {
         data = req.body

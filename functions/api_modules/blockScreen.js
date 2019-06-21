@@ -47,12 +47,10 @@ const getIdBlockScreen = () => {
                 increseIdBlockScreen()
                 return resolve('BS-'+doc.data().id)
             } else {
-                //console.log("getIdOrder() Error : There are no document order id")
                 return reject(new Error("getIdBlockScreen() Error : There are no document"))
             }
         })
         .catch((err) => {
-            //console.log("getIdOrder() Error :", err)
             return reject(err)
         })
     })
@@ -136,7 +134,8 @@ app.get('/customer', (req, res) => {
                             idBlockScreen: doc.data().idBlockScreen,
                             name: doc.data().name,
                             owner: doc.data().owner,
-                            date : doc.data().date
+                            date : doc.data().date,
+                            status: doc.data().status
                         })
                     }
                 })
@@ -150,7 +149,8 @@ app.get('/customer', (req, res) => {
                                 idBlockScreen: doc.data().idBlockScreen,
                                 name: doc.data().name,
                                 owner: doc.data().owner,
-                                date : doc.data().date
+                                date : doc.data().date,
+                                status: doc.data().status
                             })
                         }
                     })
@@ -200,7 +200,8 @@ app.get('/', async (req, res) => {
                     idBlockScreen: doc.data().idBlockScreen,
                     name: doc.data().name,
                     owner: doc.data().owner,
-                    date : doc.data().date
+                    date : doc.data().date,
+                    status: doc.data().status
                 }
             })
             res.status(200).send(data)
@@ -258,7 +259,8 @@ app.post('/', async (req, res) => {
         idBlockScreen: idBlockScreen,
         name: data.name,
         owner: data.owner,
-        date : data.date
+        date : data.date,
+        status: 'enable'
     }).then(() => {
         res.status(200).json({
             id: blockScreenRef.id,
